@@ -71,7 +71,7 @@ services:
     #   - host.docker.internal:host-gateway
 
   ## Deploy Periphery container using this block,
-  ## or deploy the Periphery binary with systemd using 
+  ## or deploy the Periphery binary with systemd using
   ## https://github.com/mbecker20/komodo/tree/main/scripts
   periphery:
     image: ghcr.io/mbecker20/periphery:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
