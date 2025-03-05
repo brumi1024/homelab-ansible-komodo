@@ -18,7 +18,7 @@ services:
       - ssl-certs:/etc/komodo/ssl
       ## manage repos in a docker volume,
       ## or change it to an accessible host directory.
-      - /srv/docker/repos:/etc/komodo/repos
+      - /srv/repos:/etc/komodo/repos
       ## manage stack files in a docker volume,
       ## or change it to an accessible host directory.
       - stacks:/etc/komodo/stacks
