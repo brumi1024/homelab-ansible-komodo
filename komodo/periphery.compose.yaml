@@ -5,6 +5,7 @@ services:
     labels:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
     restart: unless-stopped
+    container-name: komodo-periphery
     logging:
       driver: local
     ports:
