@@ -52,6 +52,7 @@ services:
       homepage.name: Komodo
       homepage.icon: komodo.svg
       homepage.href: ${KOMODO_HOST}
+      homepage.weight: 500
     restart: unless-stopped
     container_name: komodo-core
     depends_on:
