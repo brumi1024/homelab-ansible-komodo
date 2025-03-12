@@ -13,6 +13,7 @@ services:
     labels:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
     restart: unless-stopped
+    container-name: komodo-postgres
     logging:
       driver: ${COMPOSE_LOGGING_DRIVER:-local}
     networks:
@@ -31,6 +32,7 @@ services:
     labels:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
     restart: unless-stopped
+    container-name: komodo-ferretdb
     depends_on:
       - postgres
     logging:
@@ -47,6 +49,7 @@ services:
     labels:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
     restart: unless-stopped
+    container-name: komodo-core
     depends_on:
       - ferretdb
     logging:
@@ -79,6 +82,7 @@ services:
     labels:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
     restart: unless-stopped
+    container-name: komodo-periphery
     logging:
       driver: ${COMPOSE_LOGGING_DRIVER:-local}
     networks:
