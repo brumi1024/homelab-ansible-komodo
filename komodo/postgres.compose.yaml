@@ -51,7 +51,7 @@ services:
       homepage.group: Home
       homepage.name: Komodo
       homepage.icon: komodo.svg
-      homepage.href: https://komodo.${DOMAIN}
+      homepage.href: ${KOMODO_HOST}
     restart: unless-stopped
     container_name: komodo-core
     depends_on:
