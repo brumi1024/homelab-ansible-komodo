@@ -48,6 +48,10 @@ services:
     image: ghcr.io/mbecker20/komodo:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
     labels:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
+      homepage.group: Home
+      homepage.name: Komodo
+      homepage.icon: komodo.svg
+      homepage.href: https://komodo.${DOMAIN}
     restart: unless-stopped
     container_name: komodo-core
     depends_on:
