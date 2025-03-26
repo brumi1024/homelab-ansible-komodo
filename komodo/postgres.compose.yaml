@@ -71,7 +71,7 @@ services:
       ## Core cache for repos for latest commit hash / contents
       - repo-cache:/repo-cache
       ## Store sync files on server
-      # - /path/to/syncs:/syncs
+      - /srv/syncs:/syncs
       ## Optionally mount a custom core.config.toml
       # - /path/to/core.config.toml:/config/config.toml
     ## Allows for systemd Periphery connection at
