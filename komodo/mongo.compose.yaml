@@ -38,11 +38,9 @@ services:
     restart: unless-stopped
     container_name: komodo-core
     depends_on:
-      - ferretdb
+      - mongo
     logging:
       driver: ${COMPOSE_LOGGING_DRIVER:-local}
-    networks:
-      - default
     ports:
       - 9120:9120
     env_file: ./compose.env
