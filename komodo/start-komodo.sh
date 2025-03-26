@@ -2,4 +2,4 @@
 
 set -e
 
-docker compose -p komodo -f postgres.compose.yaml --env-file compose.env up -d
+docker compose -p komodo -f mongo.compose.yaml --env-file compose.env up -d
