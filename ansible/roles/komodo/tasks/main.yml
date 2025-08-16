@@ -1,0 +1,81 @@
+---
+
+- name: Create Komodo installation directory
+  file:
+    path: "{{ komodo_install_dir }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Copy Komodo Docker Compose file
+  copy:
+    src: komodo-compose.yml
+    dest: "{{ komodo_install_dir }}/compose.yml"
+    mode: '0644'
+  notify: restart komodo
+
+- name: Generate Komodo environment configuration from template
+  template:
+    src: compose.env.j2
+    dest: "{{ komodo_install_dir }}/compose.env"
+    mode: '0644'
+    backup: yes
+  notify: restart komodo
+
+- name: Deploy Komodo with Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ komodo_install_dir }}"
+    project_name: "{{ komodo_compose_project_name }}"
+    env_files:
+      - "{{ komodo_install_dir }}/compose.env"
+    state: present
+    recreate: auto
+
+- name: Wait for MongoDB to be ready
+  wait_for:
+    port: "{{ mongo_port }}"
+    host: "localhost"
+    delay: 10
+    timeout: 300
+  ignore_errors: yes
+  register: mongo_wait_result
+
+- name: Fail if MongoDB is not ready
+  fail:
+    msg: "MongoDB failed to start. Check Docker Compose logs and environment variables."
+  when: mongo_wait_result is failed
+
+- name: Wait for Komodo Core to be healthy
+  uri:
+    url: "http://localhost:{{ komodo_port }}"
+    method: GET
+  retries: 30
+  delay: 10
+  register: komodo_health
+  until: komodo_health.status == 200
+  ignore_errors: yes
+
+- name: Fail if Komodo Core is not healthy
+  fail:
+    msg: "Komodo Core failed to start. Check Docker Compose logs and environment variables."
+  when: komodo_health is failed
+
+- name: Display Komodo deployment information
+  debug:
+    msg:
+      - "🦎 Komodo Core deployed successfully!"
+      - "Web UI: http://{{ ansible_host }}:{{ komodo_port }}"
+      - "Database: MongoDB running on port {{ mongo_port }}"
+      - ""
+      - "📋 Configuration:"
+      - "Generated config: {{ komodo_install_dir }}/compose.env"
+      - "Docker Compose: {{ komodo_install_dir }}/compose.yml"
+      - ""
+      - "🔑 MANUAL STEP REQUIRED for komodo-op:"
+      - "See docs/komodo-op-setup.md for detailed instructions"
+      - ""
+      - "Quick summary:"
+      - "1. Access the Komodo UI and log in via OIDC"
+      - "2. Create an API key for komodo-op with secret permissions"
+      - "3. Store the API key in 1Password as komodo_op_api_key"
+      - "4. Update .env.1password and deploy komodo-op services"

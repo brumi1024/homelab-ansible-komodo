@@ -1,0 +1,25 @@
+---
+# Ansible requirements for Homelab Komodo infrastructure
+# Install with: ansible-galaxy install -r requirements.yml
+
+# External roles for infrastructure management
+roles:
+  # Docker installation and management
+  - name: geerlingguy.docker
+    version: "7.0.1"
+  
+  # Komodo periphery deployment with systemd
+  - name: bpbradley.komodo
+  
+  # Tailscale VPN management
+  - name: artis3n.tailscale
+
+# Required collections
+collections:
+  # Docker management modules
+  - name: community.docker
+    version: ">=3.4.0"
+  
+  # General utilities including 1Password lookups
+  - name: community.general
+    version: ">=8.0.0"

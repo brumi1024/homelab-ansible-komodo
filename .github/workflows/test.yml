@@ -1,0 +1,60 @@
+name: Test Infrastructure
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install 1Password CLI
+        run: |
+          curl -sSfo op.zip https://cache.agilebits.com/dist/1P/op2/pkg/v2.24.0/op_linux_amd64_v2.24.0.zip
+          unzip -d /usr/local/bin op.zip
+          rm op.zip
+          chmod +x /usr/local/bin/op
+      
+      - name: Setup Python and Ansible
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Ansible and dependencies
+        run: |
+          pip install ansible
+          ansible-galaxy collection install community.general
+          cd ansible && ansible-galaxy install -r requirements.yml
+      
+      - name: Create vault password file
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          echo "$ANSIBLE_VAULT_PASSWORD" > .vault_password
+          chmod 600 .vault_password
+      
+      - name: Test Ansible syntax
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+        run: |
+          cd ansible
+          op run --env-file=../.env.1password -- ansible-playbook --syntax-check --vault-id homelab@../.vault_password playbooks/bootstrap.yml
+          op run --env-file=../.env.1password -- ansible-playbook --syntax-check --vault-id homelab@../.vault_password playbooks/deploy-komodo.yml
+      
+      - name: Test 1Password integration
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+        run: |
+          bash scripts/test-1password-integration.sh
+      
+      - name: Test inventory parsing
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+        run: |
+          cd ansible
+          op run --env-file=../.env.1password -- ansible-inventory -i inventory/hosts.yml.example --list > /dev/null

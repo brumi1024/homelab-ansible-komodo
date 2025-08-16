@@ -1,0 +1,73 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deployment_type:
+        description: 'Type of deployment'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+        - full
+        - bootstrap
+        - deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install 1Password CLI
+        run: |
+          curl -sSfo op.zip https://cache.agilebits.com/dist/1P/op2/pkg/v2.24.0/op_linux_amd64_v2.24.0.zip
+          unzip -d /usr/local/bin op.zip
+          rm op.zip
+          chmod +x /usr/local/bin/op
+      
+      - name: Setup Python and Ansible
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Ansible and dependencies
+        run: |
+          pip install ansible
+          ansible-galaxy collection install community.general
+          cd ansible && ansible-galaxy install -r requirements.yml
+      
+      - name: Create vault password file
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          echo "$ANSIBLE_VAULT_PASSWORD" > .vault_password
+          chmod 600 .vault_password
+      
+      - name: Deploy Infrastructure
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+        run: |
+          deployment_type="${{ inputs.deployment_type || 'full' }}"
+          case "$deployment_type" in
+            "bootstrap")
+              ./scripts/deploy.sh bootstrap
+              ;;
+            "deploy")
+              ./scripts/deploy.sh deploy
+              ;;
+            "full")
+              ./scripts/deploy.sh full
+              ;;
+          esac
+      
+      - name: Check deployment status
+        if: always()
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+        run: |
+          ./scripts/deploy.sh status || true

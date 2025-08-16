@@ -1,0 +1,30 @@
+---
+# Local 1Password authentication configuration
+# This file configures how Ansible connects to 1Password on the local machine
+
+# 1Password authentication method - uncomment the method you prefer:
+
+# Method 1: Use service account token (recommended for automation)
+# Set this as an environment variable or use ansible-vault to encrypt it
+# op_service_account_token: "{{ lookup('env', 'OP_SERVICE_ACCOUNT_TOKEN') | default(lookup('ansible.builtin.env', 'OP_SERVICE_ACCOUNT_TOKEN'), true) }}"
+
+# Method 2: Use existing 1Password session (for interactive use)
+# If you're already signed into 1Password CLI, no additional configuration needed
+# The lookup plugin will use your existing session
+
+# Method 3: Use master password authentication (less secure, for development only)
+# Store master password in ansible-vault encrypted file
+# op_master_password: !vault |
+#   $ANSIBLE_VAULT;1.1;AES256
+#   ...encrypted master password...
+
+# 1Password account configuration (optional, if you have multiple accounts)
+# op_subdomain: "your-account"  # Your 1Password account subdomain
+# op_username: "your-email@domain.com"  # Your 1Password username
+# op_secret_key: "A3-XXXXXX-XXXXXX-XXXXX-XXXXX-XXXXX-XXXXX"  # Your secret key
+
+# Default vault name for lookups (can be overridden per lookup)
+default_vault: "Homelab"
+
+# Enable debug mode for 1Password lookups (for troubleshooting)
+op_debug: false
