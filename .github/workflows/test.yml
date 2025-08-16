@@ -44,7 +44,8 @@ jobs:
         run: |
           cd ansible
           op run --env-file=../.env.1password -- ansible-playbook --syntax-check --vault-id homelab@../.vault_password playbooks/bootstrap.yml
-          op run --env-file=../.env.1password -- ansible-playbook --syntax-check --vault-id homelab@../.vault_password playbooks/deploy-komodo.yml
+          op run --env-file=../.env.1password -- ansible-playbook --syntax-check --vault-id homelab@../.vault_password playbooks/komodo-core.yml
+          op run --env-file=../.env.1password -- ansible-playbook --syntax-check --vault-id homelab@../.vault_password playbooks/komodo-periphery.yml
       
       - name: Test 1Password integration
         env:
@@ -57,4 +58,4 @@ jobs:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
         run: |
           cd ansible
-          op run --env-file=../.env.1password -- ansible-inventory -i inventory/hosts.yml.example --list > /dev/null
+          op run --env-file=../.env.1password -- ansible-inventory -i inventory/all.yml --list > /dev/null

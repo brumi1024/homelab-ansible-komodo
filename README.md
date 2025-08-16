@@ -39,8 +39,8 @@ brew bundle
 
 ```bash
 # Copy and edit inventory
-cp ansible/inventory/hosts.yml.example ansible/inventory/hosts.yml
-# Edit hosts.yml with your server details
+cp ansible/inventory/all.yml.example ansible/inventory/all.yml
+# Edit all.yml with your server details
 ```
 
 ### 3. Authenticate to 1Password
@@ -88,10 +88,9 @@ export OP_SERVICE_ACCOUNT_TOKEN="your-token"
 
 ```
 ├── ansible/
-│   ├── inventory/           # Server inventory configuration
+│   ├── inventory/all.yml   # Single consolidated configuration file
 │   ├── playbooks/          # Ansible playbooks
-│   ├── roles/komodo/       # Custom Komodo deployment role
-│   └── group_vars/         # Global variables
+│   └── roles/komodo/       # Custom Komodo deployment role
 ├── docs/                   # Documentation
 ├── scripts/               # Deployment scripts
 └── compose/              # Manual compose files (for reference)
@@ -101,31 +100,37 @@ export OP_SERVICE_ACCOUNT_TOKEN="your-token"
 
 ### Inventory Configuration
 
-Define your servers in `ansible/inventory/hosts.yml`:
+Define your servers in `ansible/inventory/all.yml`:
 
 ```yaml
 all:
-  vars:
-    ansible_user: root
-    tailnet: "your-tailnet.ts.net"
-    
   children:
-    komodo_core:          # Central control plane (one server)
-      hosts:
-        main-server:
-          ansible_host: "main-server.your-tailnet.ts.net"
-          node_site: home
-          
-    komodo_periphery:     # Worker nodes (multiple servers)
-      hosts:
-        worker-1:
-          ansible_host: "worker-1.your-tailnet.ts.net"
-          node_site: home
-          node_stacks: [servarr, monitoring]
-        worker-2:
-          ansible_host: "worker-2.your-tailnet.ts.net"
-          node_site: remote
-          node_stacks: [uptime-kuma]
+    komodo:
+      vars:
+        ansible_user: root
+        komodo_core_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:9120"
+        # All Komodo configuration consolidated here
+        
+      children:
+        core:             # Central control plane (one server)
+          hosts:
+            main-server:
+              ansible_host: "main-server.your-tailnet.ts.net"
+              node_site: home
+              
+        periphery:        # Worker nodes (multiple servers)  
+          hosts:
+            home-server:
+              ansible_host: "main-server.your-tailnet.ts.net"
+              node_site: home
+              node_stacks: [servarr, monitoring]
+              server_address: "https://host.docker.internal:8120"  # Same-host config
+              
+            worker-1:
+              ansible_host: "worker-1.your-tailnet.ts.net"
+              node_site: remote
+              node_stacks: [uptime-kuma]
+              generate_server_passkey: true  # Auto-generated passkey
 ```
 
 ### 1Password Setup
@@ -145,6 +150,9 @@ See [docs/1password-setup.md](docs/1password-setup.md) for detailed field requir
 | `./scripts/deploy.sh bootstrap` | Install Docker and Tailscale on all servers |
 | `./scripts/deploy.sh core` | Deploy Komodo Core (MongoDB + API + UI) |
 | `./scripts/deploy.sh periphery` | Deploy Komodo Periphery workers |
+| `./scripts/deploy.sh periphery-update` | Update periphery nodes to latest version |
+| `./scripts/deploy.sh periphery-update-version VERSION` | Update periphery to specific version |
+| `./scripts/deploy.sh periphery-uninstall` | Remove periphery services |
 | `./scripts/deploy.sh check` | Test connectivity to all servers |
 | `./scripts/deploy.sh status` | Check health of all Komodo services |
 | `./scripts/deploy.sh full` | Complete deployment (bootstrap + core) |
@@ -160,13 +168,19 @@ See [docs/1password-setup.md](docs/1password-setup.md) for detailed field requir
 
 # Use different inventory
 ./scripts/deploy.sh bootstrap -i inventory/test.yml
+
+# Update periphery to specific version
+./scripts/deploy.sh periphery-update-version v1.18.4
+
+# Remove periphery services
+./scripts/deploy.sh periphery-uninstall
 ```
 
 ## Adding New Servers
 
-1. **Add to inventory**: Edit `ansible/inventory/hosts.yml`
-2. **Bootstrap server**: `./scripts/deploy.sh bootstrap -l new-server`
-3. **Deploy role**: Choose core or periphery deployment
+1. **Add to inventory**: Edit `ansible/inventory/all.yml`
+2. **Bootstrap server**: `./scripts/deploy.sh bootstrap -l new-server`  
+3. **Deploy periphery**: `./scripts/deploy.sh periphery -l new-server`
 4. **Verify**: Check status and configure stacks
 
 See [docs/new-server-setup.md](docs/new-server-setup.md) for detailed instructions.
@@ -224,8 +238,8 @@ For enhanced 1Password integration:
 # Komodo Core logs
 docker logs komodo-core-komodo-1
 
-# Komodo Periphery logs (on periphery nodes)
-journalctl -u komodo -f
+# Komodo Periphery logs (on periphery nodes)  
+sudo -u komodo journalctl --user -u periphery -f
 
 # MongoDB logs
 docker logs komodo-core-mongo-1
@@ -240,7 +254,7 @@ docker logs komodo-core-mongo-1
 ./scripts/deploy.sh bootstrap -l test-server
 
 # Dry run (check mode)
-ansible-playbook -i inventory/hosts.yml playbooks/bootstrap.yml --check
+ansible-playbook -i inventory/all.yml playbooks/bootstrap.yml --check
 ```
 
 ## Related Projects

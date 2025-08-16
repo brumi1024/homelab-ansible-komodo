@@ -1,6 +1,6 @@
 ---
 - name: Deploy Komodo Core Infrastructure
-  hosts: komodo_core
+  hosts: core
   become: yes
   gather_facts: yes
   
@@ -35,7 +35,7 @@
           - "🦎 Komodo Core deployment complete!"
           - ""
           - "Next Steps:"
-          - "1. [New deployments] Set KOMODO_DISABLE_USER_REGISTRATION to true after creating one local user."
+          - "1. [New deployments] Set KOMODO_DISABLE_USER_REGISTRATION to false to be able to create a local user."
           - "2. 🔑 Generate API keys in Komodo UI (see docs/komodo-op-setup.md)"
           - "3. 🔗 Deploy periphery nodes: ./deploy.sh periphery"
           - "4. 🤖 Deploy komodo-op for secret sync"

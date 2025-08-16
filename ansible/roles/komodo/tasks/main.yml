@@ -7,9 +7,9 @@
     owner: "{{ ansible_user }}"
     mode: '0755'
 
-- name: Copy Komodo Docker Compose file
-  copy:
-    src: komodo-compose.yml
+- name: Generate Komodo Docker Compose file from template
+  template:
+    src: komodo-compose.yml.j2
     dest: "{{ komodo_install_dir }}/compose.yml"
     mode: '0644'
   notify: restart komodo
@@ -25,7 +25,7 @@
 - name: Deploy Komodo with Docker Compose
   community.docker.docker_compose_v2:
     project_src: "{{ komodo_install_dir }}"
-    project_name: "{{ komodo_compose_project_name }}"
+    project_name: "komodo-core"
     env_files:
       - "{{ komodo_install_dir }}/compose.env"
     state: present

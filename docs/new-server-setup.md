@@ -33,7 +33,7 @@ The process involves:
 - `22`: SSH access
 
 **Komodo Periphery servers need:**
-- `9001`: Komodo Periphery API
+- `8120`: Komodo Periphery API (systemd service)
 - `22`: SSH access
 - Docker port ranges (for deployed services)
 
@@ -66,30 +66,37 @@ chmod 600 ~/.ssh/authorized_keys
 
 ### 2. Add Server to Inventory
 
-Edit `ansible/inventory/hosts.yml` and add your server:
+Edit `ansible/inventory/all.yml` and add your server:
 
 **For a new Komodo Core server:**
 ```yaml
-komodo_core:
-  hosts:
-    new-core-server:
-      ansible_host: "new-core.your-tailnet.ts.net"  # or IP address
-      node_site: datacenter  # logical grouping
-      komodo_role: core
+all:
+  children:
+    komodo:
+      children:
+        core:
+          hosts:
+            new-core-server:
+              ansible_host: "new-core.your-tailnet.ts.net"  # or IP address
+              node_site: datacenter  # logical grouping
 ```
 
 **For a new Komodo Periphery server:**
 ```yaml
-komodo_periphery:
-  hosts:
-    new-worker-server:
-      ansible_host: "new-worker.your-tailnet.ts.net"  # or IP address
-      node_site: home  # logical grouping
-      node_type: worker  # optional: server type
-      node_stacks:  # services this server will run
-        - homepage
-        - monitoring
-        - your-custom-stack
+all:
+  children:
+    komodo:
+      children:
+        periphery:
+          hosts:
+            new-worker-server:
+              ansible_host: "new-worker.your-tailnet.ts.net"  # or IP address
+              node_site: home  # logical grouping
+              node_stacks:  # services this server will run
+                - homepage
+                - monitoring
+                - your-custom-stack
+              generate_server_passkey: true  # for remote peripheries
 ```
 
 ### 3. Role Selection Guide
@@ -118,7 +125,7 @@ Before deployment, verify Ansible can reach the server:
 ./scripts/deploy.sh check -l new-server-name
 
 # Test with verbose output
-ansible new-server-name -i ansible/inventory/hosts.yml -m ping -v
+ansible new-server-name -i ansible/inventory/all.yml -m ping -v
 ```
 
 **Common connectivity issues:**
@@ -149,10 +156,10 @@ Bootstrap installs Docker and Tailscale:
 **Bootstrap verification:**
 ```bash
 # Verify Docker is running
-ansible new-server-name -i ansible/inventory/hosts.yml -m shell -a "docker --version"
+ansible new-server-name -i ansible/inventory/all.yml -m shell -a "docker --version"
 
 # Verify Tailscale is connected
-ansible new-server-name -i ansible/inventory/hosts.yml -m shell -a "tailscale status"
+ansible new-server-name -i ansible/inventory/all.yml -m shell -a "tailscale status"
 ```
 
 ### 6. Deploy Based on Role
@@ -191,8 +198,8 @@ ansible new-server-name -i ansible/inventory/hosts.yml -m shell -a "tailscale st
 **What Periphery deployment does:**
 1. Verifies Core is accessible
 2. Retrieves API credentials from 1Password
-3. Installs Komodo Periphery via systemd service
-4. Generates unique server passkey
+3. Installs Komodo Periphery via systemd user-mode service
+4. Generates unique server passkey (if `generate_server_passkey: true`)
 5. Registers with Komodo Core automatically
 
 ### 7. Verify Deployment
@@ -218,14 +225,14 @@ docker logs komodo-core-komodo-1
 
 **For Periphery servers:**
 ```bash
-# Check Periphery service
-sudo systemctl status komodo
+# Check Periphery service (user-mode systemd)
+sudo -u komodo systemctl --user status periphery
 
 # Check Periphery health
-curl http://server-ip:9001/health
+curl http://server-ip:8120/health
 
 # Check logs
-journalctl -u komodo -f
+sudo -u komodo journalctl --user -u periphery -f
 ```
 
 ### 8. Configure Services (Periphery Only)
@@ -233,8 +240,8 @@ journalctl -u komodo -f
 After successful Periphery deployment:
 
 1. **Access Komodo Core UI**
-2. **Navigate to Servers**: Should see new server listed
-3. **Configure Stacks**: Assign stacks to the new server
+2. **Navigate to Servers**: Should see new server listed and healthy
+3. **Configure Stacks**: Assign stacks to the new server based on `node_stacks`
 4. **Deploy Services**: Use the UI to deploy your services
 
 ## Advanced Configuration
@@ -280,34 +287,28 @@ new-server:
 
 ### Site-Specific Configuration
 
-Group servers by site in `group_vars/`:
+Add site-specific variables directly in `inventory/all.yml`:
 
-**Create `ansible/group_vars/datacenter.yml`:**
+**Example with site-specific settings:**
 ```yaml
----
-# Datacenter-specific settings
-site_config:
-  datacenter:
-    nas_ip: "10.0.1.100"
-    config_dir: "/data/docker-config"
-    repo_dir: "/data/repos"
-    data_dir: "/data/app-data"
-
-# Custom Docker settings for datacenter
-docker_daemon_options:
-  storage-driver: "overlay2"
-  log-driver: "syslog"
-  log-opts:
-    syslog-address: "tcp://10.0.1.200:514"
-```
-
-**Reference in inventory:**
-```yaml
-datacenter_servers:
-  hosts:
-    dc-server-1:
-      ansible_host: "10.0.1.10"
-      node_site: datacenter
+all:
+  children:
+    komodo:
+      children:
+        periphery:
+          hosts:
+            datacenter-server-1:
+              ansible_host: "10.0.1.10"
+              node_site: datacenter
+              # Datacenter-specific settings
+              docker_daemon_options:
+                storage-driver: "overlay2"
+                log-driver: "syslog"
+                log-opts:
+                  syslog-address: "tcp://10.0.1.200:514"
+              # Site-specific paths
+              config_dir: "/data/docker-config"
+              data_dir: "/data/app-data"
 ```
 
 ## Troubleshooting
