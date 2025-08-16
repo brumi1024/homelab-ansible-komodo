@@ -1,0 +1,47 @@
+all:
+  vars:
+    ansible_user: root
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa
+    
+  children:
+    komodo_core:
+      hosts:
+        main-server:
+          ansible_host: "main-server.{{ tailnet }}"
+          node_site: home
+          komodo_role: core
+          
+    komodo_periphery:
+      hosts:
+        home-server:
+          ansible_host: "home-server.{{ tailnet }}"
+          node_site: home
+          node_stacks:
+            - servarr
+            - homepage
+            - monitoring
+            - tautulli
+        sequoia-server:
+          ansible_host: "sequoia-server.{{ tailnet }}"
+          node_site: sequoia
+          node_stacks:
+            - frigate
+            - zigbee2mqtt
+        vps:
+          ansible_host: "homelab-vps.{{ tailnet }}"
+          node_site: vps
+          node_stacks:
+            - authentik
+            - uptime-kuma
+        raspberry:
+          ansible_host: "raspberry.{{ tailnet }}"
+          node_site: home
+          node_type: raspberry-pi
+          node_stacks:
+            - zigbee2mqtt
+        test-lxc:
+          ansible_host: "<your-lxc-ip>"  # Replace with actual IP
+          node_site: home
+          node_type: test
+          node_stacks:
+            - homepage  # Start with a simple service for testing

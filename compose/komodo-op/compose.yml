@@ -1,0 +1,39 @@
+services:
+  op-connect-api:
+    image: 1password/connect-api:latest
+    ports:
+      # for this particular compose file, exposing the port isn't needed since we use the docker service but we're being explicit for visibility
+      - "8080:8080"
+    volumes:
+      - "./1password-credentials.json:/home/opuser/.op/1password-credentials.json:ro"
+      - "op-connect-data:/home/opuser/.op/data"
+    environment:
+      OP_SESSION: /home/opuser/.op/1password-credentials.json
+    restart: unless-stopped
+
+  op-connect-sync:
+    image: 1password/connect-sync:latest
+    volumes:
+      - "./1password-credentials.json:/home/opuser/.op/1password-credentials.json:ro"
+      - "op-connect-data:/home/opuser/.op/data"
+    environment:
+      OP_SESSION: /home/opuser/.op/1password-credentials.json
+    restart: unless-stopped
+
+  komodo-op:
+    image: ghcr.io/0dragosh/komodo-op:latest
+    depends_on:
+      - op-connect-api
+    environment:
+      KOMODO_HOST: "http://your-komodo-host:8888"                       # REQUIRED: Replace with your Komodo host
+      KOMODO_API_KEY: "<your-komodo-api-key>"                           # REQUIRED: Replace with your Komodo API key
+      KOMODO_API_SECRET: "<your-komodo-api-secret>"                     # REQUIRED: Replace with your Komodo API secret
+      OP_CONNECT_HOST: "http://op-connect-api:8080"                     # Connect to the service defined above
+      OP_SERVICE_ACCOUNT_TOKEN: "<your-connect-service-account-token>"  # REQUIRED: Replace with your Connect Service Account Token
+      OP_VAULT: "<your-vault-uuid>"                                     # REQUIRED: Replace with the UUID of the vault to sync
+      SYNC_INTERVAL: "1h"
+      LOG_LEVEL: "INFO"                                                 # Optional: DEBUG, INFO, ERROR
+    restart: unless-stopped
+
+volumes:
+  op-connect-data:

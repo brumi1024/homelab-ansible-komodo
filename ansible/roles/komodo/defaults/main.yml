@@ -1,0 +1,19 @@
+---
+# Komodo deployment configuration
+komodo_install_dir: "/opt/komodo"
+komodo_compose_project_name: "komodo-core"
+
+# Repository paths
+repo_root: "{{ playbook_dir }}/../.."
+
+# Network configuration
+komodo_port: 9120
+mongo_port: 27017
+
+# Resource limits
+mongo_cache_size_gb: 0.25
+
+# Deployment options
+komodo_image_tag: "latest"
+komodo_logging_driver: "local"
+periphery_root_directory: "/srv"
