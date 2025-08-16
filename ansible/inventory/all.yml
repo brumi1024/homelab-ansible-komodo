@@ -1,0 +1,85 @@
+---
+# Single inventory file with all hosts and configuration
+# Following bpbradley.komodo role pattern for clean organization
+
+all:
+  hosts:
+    # Localhost for delegated tasks
+    localhost:
+      ansible_connection: local
+      
+  children:
+    komodo:
+      vars:
+        # Global Ansible configuration
+        ansible_user: root
+        ansible_ssh_private_key_file: ~/.ssh/id_rsa
+        
+        # Komodo Core connection settings  
+        komodo_core_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:9120"
+        
+        # API credentials retrieved from 1Password
+        komodo_core_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
+        komodo_core_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab') }}"
+        
+        # Enable server management for automatic registration with Komodo Core
+        enable_server_management: true
+        
+        # Komodo Core deployment configuration
+        komodo_install_dir: "/opt/komodo"
+        komodo_port: 9120
+        mongo_port: 27017
+        mongo_cache_size_gb: 0.25
+        
+        # Komodo Periphery settings
+        komodo_version: "latest"
+        komodo_bind_ip: "0.0.0.0"  # IPv4 bind address
+        komodo_bind_port: 8120  # Default systemd periphery port
+        komodo_allowed_ips: []  # Empty = allow all (can be overridden per host)
+        komodo_secrets: []      # Can be extended per host/site
+        periphery_root_directory: "/etc/komodo"
+        
+        # Service management
+        komodo_user: "komodo"
+        komodo_group: "komodo"
+        
+        # Tailscale configuration (for artis3n.tailscale role)
+        tailscale_args: "--accept-routes --accept-dns"
+        
+        # 1Password Connect configuration (for future komodo-op deployment)
+        op_connect_api_port: "8080"
+        op_connect_sync_port: "8081"
+        op_credentials_path: "/opt/onepassword-connect/1password-credentials.json"
+            
+      children:
+        core:
+          hosts:
+            main-server:
+              ansible_host: "docker-test"
+              node_site: home
+              komodo_role: core
+              
+        periphery:
+          hosts:
+            home-server:
+              ansible_host: "docker-test"
+              node_site: home
+              node_stacks:
+                - servarr
+                - homepage
+                - monitoring
+                - tautulli
+              # Same-host periphery configuration
+              server_address: "https://host.docker.internal:8120"
+              komodo_bind_ip: "0.0.0.0"  # Listen on all interfaces for systemd
+              
+            sequoia-server:
+              ansible_host: "docker-test2"
+              node_site: sequoia
+              node_stacks:
+                - frigate
+                - zigbee2mqtt
+              # Remote periphery with auto-generated passkey
+              generate_server_passkey: true
+              # Use Tailscale hostname for reliable cross-site connectivity
+              server_address: "https://{{ ansible_host }}:8120"

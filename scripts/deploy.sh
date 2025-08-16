@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuration
-INVENTORY="${INVENTORY:-inventory/hosts.yml}"
+INVENTORY="${INVENTORY:-inventory/all.yml}"
 PLAYBOOK_DIR="playbooks"
 
 # Usage information
@@ -23,12 +23,15 @@ Komodo Deployment Script
 Usage: $0 [OPTIONS] [COMMAND]
 
 Commands:
-    bootstrap       Bootstrap all nodes (install Docker, Tailscale)
-    core           Deploy Komodo Core only (MongoDB + Core)
-    periphery      Deploy Komodo Periphery nodes (requires API keys)
-    full           Bootstrap + core + periphery (default)
-    check          Check connectivity to all hosts
-    status         Check status of Komodo services
+    bootstrap              Bootstrap all nodes (install Docker, Tailscale)
+    core                  Deploy Komodo Core only (MongoDB + Core)
+    periphery             Deploy Komodo Periphery nodes (requires API keys)
+    periphery-update      Update periphery nodes to latest version
+    periphery-update-version VERSION  Update periphery to specific version
+    periphery-uninstall   Remove periphery services
+    full                  Bootstrap + core + periphery (default)
+    check                 Check connectivity to all hosts
+    status                Check status of Komodo services
 
 Options:
     -i, --inventory FILE    Inventory file (default: $INVENTORY)
@@ -46,6 +49,9 @@ Examples:
     $0 bootstrap                 # Bootstrap nodes only
     $0 core                      # Deploy Komodo Core only
     $0 periphery                 # Deploy periphery nodes (after API keys)
+    $0 periphery-update          # Update periphery to latest version
+    $0 periphery-update-version v1.18.4  # Update to specific version
+    $0 periphery-uninstall       # Remove periphery services
     $0 check                     # Check connectivity
 
 Deployment Workflow:
@@ -188,15 +194,50 @@ bootstrap() {
 # Deploy Komodo Core
 deploy_core() {
     echo -e "${BLUE}🦎 Deploying Komodo Core...${NC}"
-    run_playbook "deploy-komodo-core.yml" "$@"
+    run_playbook "komodo-core.yml" "$@"
     echo -e "${GREEN}✅ Komodo Core deployment completed${NC}"
 }
 
 # Deploy Komodo Periphery
 deploy_periphery() {
     echo -e "${BLUE}🔗 Deploying Komodo Periphery...${NC}"
-    run_playbook "deploy-komodo-periphery.yml" "$@"
+    run_playbook "komodo-periphery.yml" "$@"
     echo -e "${GREEN}✅ Komodo Periphery deployment completed${NC}"
+}
+
+# Update Komodo Periphery to latest version
+update_periphery() {
+    echo -e "${BLUE}🔄 Updating Komodo Periphery to latest version...${NC}"
+    run_playbook "komodo-periphery.yml" -e "komodo_action=update" "$@"
+    echo -e "${GREEN}✅ Komodo Periphery update completed${NC}"
+}
+
+# Update Komodo Periphery to specific version
+update_periphery_version() {
+    local version="$1"
+    shift
+    if [[ -z "$version" ]]; then
+        echo -e "${RED}❌ Version parameter required${NC}"
+        echo "Usage: $0 periphery-update-version VERSION [OPTIONS]"
+        exit 1
+    fi
+    echo -e "${BLUE}🔄 Updating Komodo Periphery to version $version...${NC}"
+    run_playbook "komodo-periphery.yml" -e "komodo_action=update" -e "komodo_periphery_version=$version" "$@"
+    echo -e "${GREEN}✅ Komodo Periphery update to $version completed${NC}"
+}
+
+# Uninstall Komodo Periphery
+uninstall_periphery() {
+    echo -e "${YELLOW}⚠️  This will remove Komodo Periphery services from all periphery nodes${NC}"
+    read -p "Continue? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}Operation cancelled${NC}"
+        exit 0
+    fi
+    echo -e "${BLUE}🗑️  Uninstalling Komodo Periphery...${NC}"
+    run_playbook "komodo-periphery.yml" -e "komodo_action=uninstall" "$@"
+    echo -e "${GREEN}✅ Komodo Periphery uninstall completed${NC}"
 }
 
 # Deploy full stack (for backwards compatibility)
@@ -217,33 +258,33 @@ check_status() {
     
     # Check Komodo Core health endpoint
     echo "Checking Komodo Core..."
-    if ansible komodo_core -i "$INVENTORY" -m uri -a "url=http://localhost:9120 method=GET" --one-line > /dev/null 2>&1; then
+    if ansible core -i "$INVENTORY" -m uri -a "url=http://localhost:9120 method=GET" --one-line > /dev/null 2>&1; then
         echo -e "${GREEN}✅ Komodo Core is healthy${NC}"
     else
         echo -e "${RED}❌ Komodo Core is not responding${NC}"
         echo "   Try: docker logs komodo-core-komodo-1 (on core server)"
     fi
     
-    # Check Komodo Periphery nodes
+    # Check Komodo Periphery nodes (user-mode systemd services)
     echo "Checking Komodo Periphery nodes..."
-    if ansible komodo_periphery -i "$INVENTORY" -m shell -a "systemctl is-active komodo" --one-line > /dev/null 2>&1; then
+    if ansible periphery -i "$INVENTORY" -m shell -a "sudo -u komodo systemctl --user is-active periphery" --one-line > /dev/null 2>&1; then
         echo -e "${GREEN}✅ Komodo Periphery nodes are running${NC}"
     else
         echo -e "${YELLOW}⚠️  Some Komodo Periphery nodes may not be running${NC}"
-        echo "   Try: journalctl -u komodo -f (on periphery servers)"
+        echo "   Try: sudo -u komodo journalctl --user -u periphery -f (on periphery servers)"
     fi
     
     # Check Docker container status for Core
     echo -e "${BLUE}Checking Komodo Core containers...${NC}"
-    if ansible komodo_core -i "$INVENTORY" -m shell -a "docker ps --filter 'name=komodo-core' --format 'table {{.Names}}\\t{{.Status}}'" 2>/dev/null; then
+    if ansible core -i "$INVENTORY" -m shell -a "docker ps --filter 'name=komodo-core' --format 'table {{.Names}}\\t{{.Status}}'" 2>/dev/null; then
         :  # Output will be shown
     else
         echo -e "${YELLOW}⚠️  Could not check Core containers${NC}"
     fi
     
-    # Check systemd services for Periphery
+    # Check systemd services for Periphery (user-mode services)
     echo -e "${BLUE}Checking Komodo Periphery services...${NC}"
-    if ansible komodo_periphery -i "$INVENTORY" -m shell -a "systemctl status komodo --no-pager -l" 2>/dev/null; then
+    if ansible periphery -i "$INVENTORY" -m shell -a "sudo -u komodo systemctl --user status periphery --no-pager -l" 2>/dev/null; then
         :  # Output will be shown
     else
         echo -e "${YELLOW}⚠️  Could not check Periphery services${NC}"
@@ -260,7 +301,7 @@ show_info() {
     cd ansible
     
     # Get core server info
-    local core_host=$(ansible-inventory -i "$INVENTORY" --list | jq -r '.komodo_core.hosts[0]')
+    local core_host=$(ansible-inventory -i "$INVENTORY" --list | jq -r '.core.hosts[0]')
     if [[ -n "$core_host" && "$core_host" != "null" ]]; then
         local core_ip=$(ansible-inventory -i "$INVENTORY" --host "$core_host" | jq -r '.ansible_host // .ansible_ssh_host // "unknown"')
         echo -e "${GREEN}🖥️  Komodo Core:${NC}"
@@ -272,7 +313,7 @@ show_info() {
     
     # Show periphery nodes
     echo -e "${GREEN}🔗 Periphery Nodes:${NC}"
-    ansible-inventory -i "$INVENTORY" --list | jq -r '.komodo_periphery.hosts[]?' | while read -r host; do
+    ansible-inventory -i "$INVENTORY" --list | jq -r '.periphery.hosts[]?' | while read -r host; do
         if [[ -n "$host" ]]; then
             local host_ip=$(ansible-inventory -i "$INVENTORY" --host "$host" | jq -r '.ansible_host // .ansible_ssh_host // "unknown"')
             echo "   $host ($host_ip:9001)"
@@ -314,6 +355,21 @@ main() {
             shift
             check_prereqs
             deploy_periphery "$@"
+            ;;
+        periphery-update)
+            shift
+            check_prereqs
+            update_periphery "$@"
+            ;;
+        periphery-update-version)
+            shift
+            check_prereqs
+            update_periphery_version "$@"
+            ;;
+        periphery-uninstall)
+            shift
+            check_prereqs
+            uninstall_periphery "$@"
             ;;
         full)
             shift

@@ -12,10 +12,10 @@ services:
     image: mongo
     labels:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
-    command: --quiet --wiredTigerCacheSizeGB 0.25
+    command: --quiet --wiredTigerCacheSizeGB {{ mongo_cache_size_gb }}
     restart: unless-stopped
     ports:
-      - 27017:27017
+      - {{ mongo_port }}:27017
     volumes:
       - mongo-data:/data/db
       - mongo-config:/data/configdb
@@ -31,7 +31,7 @@ services:
     depends_on:
       - mongo
     ports:
-      - 9120:9120
+      - {{ komodo_port }}:9120
     env_file: ./compose.env
     environment:
       KOMODO_DATABASE_ADDRESS: mongo:27017
@@ -44,6 +44,10 @@ services:
       - ${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}/syncs:/syncs
       ## Optionally mount a custom core.config.toml
       # - /path/to/core.config.toml:/config/config.toml
+    ## Configure DNS to resolve Tailscale hostnames
+    dns:
+      - 100.100.100.100  # Tailscale DNS
+      - 8.8.8.8          # Fallback to Google DNS
     ## Allows for systemd Periphery connection at
     ## "http://host.docker.internal:8120"
     extra_hosts:
