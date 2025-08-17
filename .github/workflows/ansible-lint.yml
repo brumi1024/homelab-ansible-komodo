@@ -24,4 +24,4 @@ jobs:
         uses: ansible/ansible-lint@main
         with:
           working_directory: "ansible/"
-          requirements_file: "ansible/requirements.yml"
+          requirements_file: "requirements.yml"
