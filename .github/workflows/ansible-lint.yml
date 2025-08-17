@@ -1,6 +1,6 @@
 ---
-name: Ansible Lint
-
+# .github/workflows/ansible-lint.yml
+name: ansible-lint
 on:
   push:
     branches: [main, IaC]
@@ -14,19 +14,14 @@ on:
       - 'ansible/**'
       - '.github/workflows/ansible-lint.yml'
       - '.ansible-lint'
-
 jobs:
-  lint:
-    name: Ansible Lint
-    runs-on: ubuntu-latest
-    
+  build:
+    name: Ansible Lint  # Naming the build is important to use it as a status check
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
+      - uses: actions/checkout@v4
       - name: Run ansible-lint
-        uses: ansible/ansible-lint@v24.7.0  # Use specific version for stability
+        uses: ansible/ansible-lint@main
         with:
-          args: ""  # Optional: add specific arguments
-          working_directory: ansible/
-          requirements_file: ansible/requirements.yml
+          working_directory: "ansible/"
+          requirements_file: "ansible/requirements.yml"
