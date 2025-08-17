@@ -67,11 +67,15 @@ export OP_SERVICE_ACCOUNT_TOKEN="your-token"
 ./scripts/deploy.sh core
 ```
 
-**Generate API Keys (Manual Step):**
-1. Access Komodo Core web UI at `http://your-server:<komodo_port>` (default port 9120)
-2. Login via OIDC or add local user by setting KOMODO_DISABLE_USER_REGISTRATION to false temporarily
-3. Generate API key/secret pair with appropriate permissions
-4. Store in 1Password item 'Komodo' with fields 'komodo_api_key' and 'komodo_api_secret'
+**Initialize API Keys (Automated):**
+```bash
+./scripts/deploy.sh init-auth
+```
+This automatically:
+1. Logs in using admin credentials from 1Password
+2. Creates a service user for automation
+3. Generates API key/secret pair
+4. Stores them in 1Password (no manual UI interaction required)
 
 **Deploy Periphery Nodes:**
 ```bash
@@ -150,6 +154,7 @@ See [docs/1password-setup.md](docs/1password-setup.md) for detailed field requir
 |---------|-------------|
 | `./scripts/deploy.sh bootstrap` | Install Docker and Tailscale on all servers |
 | `./scripts/deploy.sh core` | Deploy Komodo Core (MongoDB + API + UI) |
+| `./scripts/deploy.sh init-auth` | Initialize API keys automatically (eliminates manual step) |
 | `./scripts/deploy.sh periphery` | Deploy Komodo Periphery workers |
 | `./scripts/deploy.sh periphery-update` | Update periphery nodes to latest version |
 | `./scripts/deploy.sh periphery-update-version VERSION` | Update periphery to specific version |
@@ -227,8 +232,8 @@ See [docs/komodo-gitops-setup.md](docs/komodo-gitops-setup.md) for complete setu
 - For CI/CD: Set `OP_SERVICE_ACCOUNT_TOKEN`
 
 **Periphery deployment fails**
-- Ensure API keys are generated in Core UI first
-- Verify API keys are stored correctly in 1Password
+- Run API key initialization: `./scripts/deploy.sh init-auth`
+- Verify API keys were stored in 1Password: `op item get Komodo --vault Homelab`
 - Check Core is healthy: `./scripts/deploy.sh status`
 
 **SSH connection failures**

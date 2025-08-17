@@ -30,6 +30,7 @@ Commands:
     periphery-update-version VERSION  Update periphery to specific version
     periphery-uninstall   Remove periphery services
     setup-syncs           Setup Komodo resource syncs for GitOps
+    init-auth             Initialize API keys automatically (eliminates manual step)
     bootstrap-komodo-op   Bootstrap Komodo variables for komodo-op (run once)
     full                  Bootstrap + core + periphery (default)
     check                 Check connectivity to all hosts
@@ -54,6 +55,7 @@ Examples:
     $0 periphery-update          # Update periphery to latest version
     $0 periphery-update-version v1.18.4  # Update to specific version
     $0 periphery-uninstall       # Remove periphery services
+    $0 init-auth                 # Initialize API keys (eliminates manual step)
     $0 setup-syncs               # Setup Komodo resource syncs
     $0 bootstrap-komodo-op       # Bootstrap variables for komodo-op
     $0 check                     # Check connectivity
@@ -62,7 +64,7 @@ Deployment Workflow:
     1. ./scripts/setup-ansible.sh  # Install dependencies
     2. $0 bootstrap              # Prepare all nodes
     3. $0 core                   # Deploy Komodo Core
-    4. Generate API keys in UI   # Manual step (see docs/1password-setup.md)
+    4. $0 init-auth              # Initialize API keys (automated)
     5. $0 periphery              # Deploy periphery nodes
     
 See README.md for complete setup guide.
@@ -256,6 +258,17 @@ setup_komodo_syncs() {
     echo "4. Deploy komodo-op first, then application stacks"
 }
 
+# Initialize Komodo Authentication
+init_komodo_auth() {
+    echo -e "${BLUE}🔑 Initializing Komodo authentication...${NC}"
+    echo -e "${YELLOW}Using admin credentials from 1Password to create API keys...${NC}"
+    run_playbook "initialize-komodo-auth.yml" "$@"
+    echo -e "${GREEN}✅ API keys generated and stored in 1Password${NC}"
+    echo -e "${YELLOW}Next steps:${NC}"
+    echo "1. Deploy periphery nodes: ./deploy.sh periphery"
+    echo "2. Setup GitOps integration with komodo-op"
+}
+
 # Bootstrap Komodo Variables for komodo-op
 bootstrap_komodo_op() {
     echo -e "${BLUE}🔧 Bootstrapping Komodo variables for komodo-op...${NC}"
@@ -271,10 +284,11 @@ bootstrap_komodo_op() {
 deploy_full() {
     echo -e "${BLUE}🚀 Deploying complete Komodo infrastructure...${NC}"
     deploy_core "$@"
-    echo -e "${YELLOW}⚠️  Manual step required before periphery deployment${NC}"
-    echo -e "${YELLOW}   Generate API keys in Komodo Core UI${NC}"
-    echo -e "${YELLOW}   Store them in 1Password (see docs/1password-setup.md)${NC}"
-    echo -e "${YELLOW}   Then run: $0 periphery${NC}"
+    echo -e "${BLUE}🔑 Initializing API keys automatically...${NC}"
+    init_komodo_auth "$@"
+    echo -e "${BLUE}🔗 Deploying periphery nodes...${NC}"
+    deploy_periphery "$@"
+    echo -e "${GREEN}✅ Full Komodo infrastructure deployment completed${NC}"
 }
 
 # Check service status
@@ -402,6 +416,11 @@ main() {
             shift
             check_prereqs
             setup_komodo_syncs "$@"
+            ;;
+        init-auth)
+            shift
+            check_prereqs
+            init_komodo_auth "$@"
             ;;
         bootstrap-komodo-op)
             shift

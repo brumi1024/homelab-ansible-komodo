@@ -70,6 +70,8 @@ All items should be created in the **'Homelab' vault**. The exact item names and
 **Required Fields:**
 | Field Name | Description | Example Value |
 |------------|-------------|---------------|
+| `username` | Admin username for Komodo UI | `admin` |
+| `password` | Admin password for Komodo UI | `secure_admin_password_32_chars` |
 | `komodo_db_username` | MongoDB username | `komodo_user` |
 | `komodo_db_password` | MongoDB password | `secure_random_password` |
 | `komodo_passkey` | Core/Periphery authentication | `generated_passkey_32_chars` |
@@ -80,8 +82,8 @@ All items should be created in the **'Homelab' vault**. The exact item names and
 | `komodo_oidc_redirect_host` | OIDC redirect host | `komodo.yourdomain.com` |
 | `komodo_oidc_client_id` | OIDC client ID | `komodo-client-id` |
 | `komodo_oidc_client_secret` | OIDC client secret | `oidc_client_secret` |
-| `komodo_api_key` | API key for periphery | `generated_after_core_deployment` |
-| `komodo_api_secret` | API secret for periphery | `generated_after_core_deployment` |
+| `komodo_api_key` | API key for periphery | `auto_generated_by_init_auth` |
+| `komodo_api_secret` | API secret for periphery | `auto_generated_by_init_auth` |
 | `KOMODO_API_KEY` | API key for komodo-op | `same_as_komodo_api_key` |
 | `KOMODO_API_SECRET` | API secret for komodo-op | `same_as_komodo_api_secret` |
 | `OP_SERVICE_ACCOUNT_TOKEN` | 1Password Connect service token | `from_1password_admin` |
@@ -93,6 +95,8 @@ All items should be created in the **'Homelab' vault**. The exact item names and
 op item create --category Login --title "Komodo" --vault "Homelab"
 
 # Add each field
+op item edit "Komodo" --vault "Homelab" username="admin"
+op item edit "Komodo" --vault "Homelab" password="$(op generate 32)"
 op item edit "Komodo" --vault "Homelab" komodo_db_username="komodo_user"
 op item edit "Komodo" --vault "Homelab" komodo_db_password="$(op generate 32)"
 op item edit "Komodo" --vault "Homelab" komodo_passkey="$(op generate 32)"
@@ -165,10 +169,15 @@ op generate --symbols 64  # include symbols
 - Use strong randomness
 - Base64 encoding is acceptable but not required
 
+**Admin credentials (username/password):**
+- Used for initial admin user creation on fresh deployments
+- `init-auth` command will create the admin user automatically if it doesn't exist
+- Temporarily enables user registration during setup (re-disabled immediately after)
+
 **API keys/secrets:**
-- Will be generated automatically by Komodo Core after deployment
-- Add these fields with placeholder values initially
-- Update with real values after Core deployment
+- Generated automatically by the `init-auth` command
+- No manual UI interaction required
+- Stored securely in 1Password after creation
 
 **Passkeys:**
 - 32+ character random string
