@@ -82,6 +82,10 @@ All items should be created in the **'Homelab' vault**. The exact item names and
 | `komodo_oidc_client_secret` | OIDC client secret | `oidc_client_secret` |
 | `komodo_api_key` | API key for periphery | `generated_after_core_deployment` |
 | `komodo_api_secret` | API secret for periphery | `generated_after_core_deployment` |
+| `KOMODO_API_KEY` | API key for komodo-op | `same_as_komodo_api_key` |
+| `KOMODO_API_SECRET` | API secret for komodo-op | `same_as_komodo_api_secret` |
+| `OP_SERVICE_ACCOUNT_TOKEN` | 1Password Connect service token | `from_1password_admin` |
+| `OP_VAULT_UUID` | 1Password vault UUID | `from_vault_settings` |
 
 **How to create:**
 ```bash
@@ -111,7 +115,7 @@ op item create --category Login --title "Tailscale" --vault "Homelab"
 op item edit "Tailscale" --vault "Homelab" tailscale_authkey="tskey-auth-your-key-here"
 ```
 
-### 3. 1Password Connect (Optional - for future komodo-op integration)
+### 3. 1Password Connect (Required for komodo-op integration)
 
 **Item Name:** `ConnectServer`  
 **Item Type:** Document or Secure Note
@@ -120,10 +124,18 @@ op item edit "Tailscale" --vault "Homelab" tailscale_authkey="tskey-auth-your-ke
 | Field Name | Description | Source |
 |------------|-------------|--------|
 | `1password-credentials.json` | Connect server credentials | Download from 1Password admin |
-| `connect_token` | Connect API token | Generate in 1Password admin |
-| `vault_uuid` | Vault UUID | Get from vault settings |
+| `OP_SERVICE_ACCOUNT_TOKEN` | Connect service account token | Generate in 1Password admin |
+| `OP_VAULT_UUID` | Vault UUID for komodo-op sync | Get from vault settings |
 
-**Note:** These are only needed if you plan to use 1Password Connect for komodo-op integration.
+**Note:** These are required for komodo-op to sync secrets from 1Password to Komodo global variables.
+
+**How to set up:**
+
+1. **Create Connect Server** in 1Password admin console
+2. **Download credentials** (`1password-credentials.json`) 
+3. **Create service account** with read access to Homelab vault
+4. **Get vault UUID** from vault settings
+5. **Store in 1Password** item named `ConnectServer`
 
 ## Field Generation Guidelines
 

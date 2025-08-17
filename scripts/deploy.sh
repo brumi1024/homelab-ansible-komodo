@@ -29,6 +29,8 @@ Commands:
     periphery-update      Update periphery nodes to latest version
     periphery-update-version VERSION  Update periphery to specific version
     periphery-uninstall   Remove periphery services
+    setup-syncs           Setup Komodo resource syncs for GitOps
+    bootstrap-komodo-op   Bootstrap Komodo variables for komodo-op (run once)
     full                  Bootstrap + core + periphery (default)
     check                 Check connectivity to all hosts
     status                Check status of Komodo services
@@ -52,6 +54,8 @@ Examples:
     $0 periphery-update          # Update periphery to latest version
     $0 periphery-update-version v1.18.4  # Update to specific version
     $0 periphery-uninstall       # Remove periphery services
+    $0 setup-syncs               # Setup Komodo resource syncs
+    $0 bootstrap-komodo-op       # Bootstrap variables for komodo-op
     $0 check                     # Check connectivity
 
 Deployment Workflow:
@@ -240,6 +244,29 @@ uninstall_periphery() {
     echo -e "${GREEN}✅ Komodo Periphery uninstall completed${NC}"
 }
 
+# Setup Komodo Resource Syncs for GitOps
+setup_komodo_syncs() {
+    echo -e "${BLUE}🔄 Setting up Komodo Resource Syncs for GitOps...${NC}"
+    run_playbook "setup-komodo-syncs.yml" "$@"
+    echo -e "${GREEN}✅ Komodo Resource Syncs setup completed${NC}"
+    echo -e "${YELLOW}Next steps:${NC}"
+    echo "1. Create GitHub repositories: komodo-op-stack and homelab-komodo-stacks"
+    echo "2. Push code to repositories"
+    echo "3. Configure GitHub webhooks to trigger automatic deployments"
+    echo "4. Deploy komodo-op first, then application stacks"
+}
+
+# Bootstrap Komodo Variables for komodo-op
+bootstrap_komodo_op() {
+    echo -e "${BLUE}🔧 Bootstrapping Komodo variables for komodo-op...${NC}"
+    run_playbook "bootstrap-komodo-op.yml" "$@"
+    echo -e "${GREEN}✅ Komodo variables bootstrap completed${NC}"
+    echo -e "${YELLOW}Next steps:${NC}"
+    echo "1. Deploy komodo-op stack via Komodo UI resource sync"
+    echo "2. Wait for komodo-op to start syncing secrets from 1Password"
+    echo "3. Check Komodo global variables for new secrets"
+}
+
 # Deploy full stack (for backwards compatibility)
 deploy_full() {
     echo -e "${BLUE}🚀 Deploying complete Komodo infrastructure...${NC}"
@@ -370,6 +397,16 @@ main() {
             shift
             check_prereqs
             uninstall_periphery "$@"
+            ;;
+        setup-syncs)
+            shift
+            check_prereqs
+            setup_komodo_syncs "$@"
+            ;;
+        bootstrap-komodo-op)
+            shift
+            check_prereqs
+            bootstrap_komodo_op "$@"
             ;;
         full)
             shift
