@@ -41,13 +41,12 @@ services:
       ## Core cache for repos for latest commit hash / contents
       - repo-cache:/repo-cache
       ## Store sync files on server
-      - ${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}/syncs:/syncs
+      - ${PERIPHERY_ROOT_DIRECTORY}/syncs:/syncs
       ## Optionally mount a custom core.config.toml
       # - /path/to/core.config.toml:/config/config.toml
     ## Configure DNS to resolve Tailscale hostnames
     dns:
       - 100.100.100.100  # Tailscale DNS
-      - 8.8.8.8          # Fallback to Google DNS
     ## Allows for systemd Periphery connection at
     ## "http://host.docker.internal:8120"
     extra_hosts:

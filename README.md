@@ -68,7 +68,7 @@ export OP_SERVICE_ACCOUNT_TOKEN="your-token"
 ```
 
 **Generate API Keys (Manual Step):**
-1. Access Komodo Core web UI (see deployment output for URL)
+1. Access Komodo Core web UI at `http://your-server:<komodo_port>` (default port 9120)
 2. Login via OIDC or add local user by setting KOMODO_DISABLE_USER_REGISTRATION to false temporarily
 3. Generate API key/secret pair with appropriate permissions
 4. Store in 1Password item 'Komodo' with fields 'komodo_api_key' and 'komodo_api_secret'
@@ -108,7 +108,8 @@ all:
     komodo:
       vars:
         ansible_user: root
-        komodo_core_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:9120"
+        komodo_port: 9120  # Configurable Komodo port
+        komodo_core_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
         # All Komodo configuration consolidated here
         
       children:
@@ -153,6 +154,7 @@ See [docs/1password-setup.md](docs/1password-setup.md) for detailed field requir
 | `./scripts/deploy.sh periphery-update` | Update periphery nodes to latest version |
 | `./scripts/deploy.sh periphery-update-version VERSION` | Update periphery to specific version |
 | `./scripts/deploy.sh periphery-uninstall` | Remove periphery services |
+| `./scripts/deploy.sh setup-syncs` | Setup Komodo resource syncs for GitOps |
 | `./scripts/deploy.sh check` | Test connectivity to all servers |
 | `./scripts/deploy.sh status` | Check health of all Komodo services |
 | `./scripts/deploy.sh full` | Complete deployment (bootstrap + core) |
@@ -189,7 +191,7 @@ See [docs/new-server-setup.md](docs/new-server-setup.md) for detailed instructio
 
 ### 1. Access Komodo UI
 
-The web interface will be available at `http://your-core-server:9120`
+The web interface will be available at `http://your-core-server:<komodo_port>` (default port 9120)
 
 ### 2. Configure Authentication
 
@@ -202,12 +204,14 @@ The web interface will be available at `http://your-core-server:9120`
 - Configure stack deployments through the UI
 - Set up automated builds and deployments
 
-### 4. Optional: komodo-op Integration
+### 4. GitOps with komodo-op (Recommended)
 
-For enhanced 1Password integration:
-1. Deploy 1Password Connect server
-2. Configure komodo-op service
-3. Sync secrets automatically
+For automated stack management and 1Password integration:
+1. Set up resource syncs: `./scripts/deploy.sh setup-syncs`
+2. Deploy komodo-op for secret synchronization  
+3. Deploy application stacks via GitOps workflow
+
+See [docs/komodo-gitops-setup.md](docs/komodo-gitops-setup.md) for complete setup guide.
 
 ## Troubleshooting
 

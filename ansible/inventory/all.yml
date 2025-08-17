@@ -15,8 +15,9 @@ all:
         ansible_user: root
         ansible_ssh_private_key_file: ~/.ssh/id_rsa
         
-        # Komodo Core connection settings  
-        komodo_core_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:9120"
+        # Komodo Core connection settings
+        tailnet: "{{ lookup('community.general.onepassword', 'Network', field='tailnet', vault='Homelab') }}"
+        komodo_core_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
         
         # API credentials retrieved from 1Password
         komodo_core_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
@@ -55,14 +56,14 @@ all:
         core:
           hosts:
             main-server:
-              ansible_host: "docker-test"
+              ansible_host: "docker-test.{{ tailnet }}"
               node_site: home
               komodo_role: core
               
         periphery:
           hosts:
             home-server:
-              ansible_host: "docker-test"
+              ansible_host: "docker-test.{{ tailnet }}"
               node_site: home
               node_stacks:
                 - servarr
@@ -74,7 +75,7 @@ all:
               komodo_bind_ip: "0.0.0.0"  # Listen on all interfaces for systemd
               
             sequoia-server:
-              ansible_host: "docker-test2"
+              ansible_host: "docker-test2.{{ tailnet }}"
               node_site: sequoia
               node_stacks:
                 - frigate
