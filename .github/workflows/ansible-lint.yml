@@ -1,0 +1,32 @@
+---
+name: Ansible Lint
+
+on:
+  push:
+    branches: [main, IaC]
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/ansible-lint.yml'
+      - '.ansible-lint'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/ansible-lint.yml'
+      - '.ansible-lint'
+
+jobs:
+  lint:
+    name: Ansible Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Run ansible-lint
+        uses: ansible/ansible-lint@v24.7.0  # Use specific version for stability
+        with:
+          args: ""  # Optional: add specific arguments
+          working_directory: ansible/
+          requirements_file: ansible/requirements.yml
