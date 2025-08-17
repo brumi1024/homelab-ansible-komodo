@@ -25,7 +25,7 @@ mock_roles:
   - artis3n.tailscale
 
 # Specific rules to skip (use sparingly)
-skip_list:
+# skip_list:
   # - yaml[line-length]  # Lines can be longer than 160 chars
   # - name[casing]  # Allow tasks without names in certain contexts
 
