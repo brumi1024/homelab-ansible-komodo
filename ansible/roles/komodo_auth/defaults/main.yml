@@ -1,0 +1,9 @@
+---
+# Role-specific defaults for komodo_auth role
+# Main configuration moved to inventory/all.yml
+# Only role-internal behavior settings here
+
+# Role behavior defaults
+komodo_auth_max_retries: 5
+komodo_auth_retry_delay: 2
+komodo_auth_timeout: 30

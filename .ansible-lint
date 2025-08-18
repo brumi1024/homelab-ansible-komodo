@@ -25,7 +25,6 @@ mock_modules:
 mock_roles:
   - geerlingguy.docker
   - bpbradley.komodo
-  - artis3n.tailscale
 
 # Specific rules to skip (use sparingly)
 # skip_list:

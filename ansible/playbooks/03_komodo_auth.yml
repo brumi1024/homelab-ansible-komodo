@@ -1,0 +1,25 @@
+---
+# Initialize Komodo Authentication and API Keys
+# This playbook uses the komodo_auth role to handle authentication setup
+
+- name: Initialize Komodo Authentication
+  hosts: localhost
+  gather_facts: false
+  vars:
+    komodo_port: "{{ hostvars[groups['core'][0]]['komodo_port'] }}"
+    komodo_install_dir: "{{ hostvars[groups['core'][0]]['komodo_install_dir'] }}"
+
+  roles:
+    - role: komodo_auth
+
+  post_tasks:
+    - name: Display initialization summary
+      ansible.builtin.debug:
+        msg:
+          - "🔑 Komodo Authentication Initialization Complete!"
+          - ""
+          - "✅ Admin user: {{ komodo_auth_admin_username | default('configured') }}"
+          - "✅ Service user: {{ komodo_auth_service_user }} (created with admin permissions)"
+          - "✅ API credentials: Generated and stored in 1Password"
+          - ""
+          - "🚀 Ready for periphery deployment!"

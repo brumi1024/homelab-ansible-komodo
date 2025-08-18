@@ -6,15 +6,15 @@
   serial: 2 # Deploy 2 nodes at a time to avoid overwhelming the core
 
   pre_tasks:
-    - name: Check if node is bootstrapped
+    - name: Check if Docker is installed
       ansible.builtin.stat:
-        path: /opt/.bootstrap_complete
-      register: bootstrap_marker
+        path: /opt/.docker_install_complete
+      register: docker_marker
 
-    - name: Fail if node not bootstrapped
+    - name: Fail if Docker not installed
       ansible.builtin.fail:
-        msg: "Node not bootstrapped. Run bootstrap.yml first."
-      when: not bootstrap_marker.stat.exists
+        msg: "Docker not installed. Run 01_docker.yml first."
+      when: not docker_marker.stat.exists
 
     - name: Display action information
       ansible.builtin.debug:
