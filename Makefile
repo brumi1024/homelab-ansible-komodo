@@ -2,7 +2,9 @@
 # Simplified deployment management with direct Ansible calls
 
 .PHONY: help setup lint check \
-        docker core auth periphery deploy \
+        docker core auth periphery deploy deploy-with-op \
+        komodo-op app-syncs \
+        core-upgrade periphery-upgrade periphery-uninstall \
         status clean
 
 # Ansible configuration
@@ -17,9 +19,10 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 	@echo
 	@echo "Quick Start:"
-	@echo "  make setup    - Install Ansible dependencies"
-	@echo "  make deploy   - Complete deployment (all steps)"
-	@echo "  make lint     - Run code quality checks"
+	@echo "  make setup           - Install Ansible dependencies"
+	@echo "  make deploy          - Complete deployment (without komodo-op)"
+	@echo "  make deploy-with-op  - Complete deployment (with komodo-op)"
+	@echo "  make lint            - Run code quality checks"
 
 # =============================================================================
 # Setup and Dependencies
@@ -72,6 +75,40 @@ periphery: ## Deploy Komodo Periphery nodes (requires auth)
 deploy: ## Complete deployment (all steps in sequence)
 	@echo "🚀 Starting complete Komodo deployment..."
 	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) site.yml
+
+deploy-with-op: ## Complete deployment with komodo-op secret management
+	@echo "🚀 Starting complete Komodo deployment with komodo-op..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) site.yml -e enable_komodo_op=true
+
+# =============================================================================
+# Secret Management & GitOps
+# =============================================================================
+
+komodo-op: ## Deploy komodo-op for secret management (manual)
+	@echo "🔐 Bootstrapping komodo-op variables..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/05_bootstrap_komodo_op.yml
+	@echo "🔐 Deploying komodo-op stack..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/06_deploy_komodo_op.yml
+
+app-syncs: ## Setup application resource syncs (run after komodo-op)
+	@echo "🔄 Setting up application resource syncs..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/07_app_syncs.yml
+
+# =============================================================================
+# Upgrade & Management Commands
+# =============================================================================
+
+core-upgrade: ## Upgrade Komodo Core (pulls latest images)
+	@echo "⬆️ Upgrading Komodo Core..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/02_komodo_core.yml --tags upgrade
+
+periphery-upgrade: ## Upgrade Komodo Periphery nodes
+	@echo "⬆️ Upgrading Komodo Periphery nodes..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/04_komodo_periphery.yml -e komodo_action=update
+
+periphery-uninstall: ## Uninstall Komodo Periphery from nodes
+	@echo "🗑️ Uninstalling Komodo Periphery..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/04_komodo_periphery.yml -e komodo_action=uninstall
 
 # =============================================================================
 # Maintenance Commands

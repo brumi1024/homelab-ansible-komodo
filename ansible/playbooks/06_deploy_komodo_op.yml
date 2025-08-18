@@ -1,0 +1,80 @@
+---
+# Deploy komodo-op Stack via Komodo Resource Sync
+# This playbook creates and triggers a resource sync for komodo-op deployment
+
+- name: Deploy komodo-op Stack
+  hosts: localhost
+  gather_facts: false
+  vars:
+    komodo_port: "{{ hostvars[groups['core'][0]]['komodo_port'] }}"
+    komodo_base_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
+    komodo_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
+    komodo_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab') }}"
+
+  tasks:
+    - name: Create komodo-op resource sync
+      ansible.builtin.include_tasks: ../tasks/komodo_sync_operations.yml
+      vars:
+        sync_config:
+          name: "komodo-op-sync"
+          repo: "{{ komodo_op_repo | default('brumi1024/deploy-komodo-op') }}"
+          branch: "{{ komodo_op_branch | default('main') }}"
+          git_account: "{{ komodo_op_git_account | default('brumi1024') }}"
+          resource_path: "stack.toml"
+          on_clone: "PullAndDeploy"
+          on_pull: "PullAndDeploy"
+          auto_pull: true
+          auto_deploy: true
+        trigger_sync: true
+        wait_for_sync_completion: true
+        sync_wait_retries: 30
+        sync_wait_delay: 10
+
+    - name: Display komodo-op sync result
+      ansible.builtin.debug:
+        var: resource_sync_result
+
+    - name: Wait for komodo-op stack to appear and be running
+      ansible.builtin.include_tasks: ../tasks/komodo_stack_operations.yml
+      vars:
+        stack_name_pattern: '.*komodo.*op.*'
+        wait_for_stack_appear: true
+        wait_for_running: true
+        stack_appear_retries: 30
+        stack_appear_delay: 10
+        stack_running_retries: 60
+        stack_running_delay: 10
+
+    # After the stack operations, we need to set the found stack for display
+    - name: Set komodo-op stack details for completion message
+      ansible.builtin.set_fact:
+        komodo_op_stack: "{{ found_stack }}"
+
+    - name: Test 1Password Connect accessibility
+      ansible.builtin.uri:
+        url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:8080/v1/heartbeat"
+        method: GET
+        status_code: 200
+      register: op_connect_health
+      retries: 10
+      delay: 30
+      failed_when: false
+
+    - name: Display deployment summary
+      ansible.builtin.debug:
+        msg: |-
+          🎉 komodo-op Stack Deployment Complete!
+
+          Stack Details:
+          - Name: {{ komodo_op_stack }}
+          - Repository: {{ komodo_op_repo | default('brumi1024/deploy-komodo-op') }}
+
+          1Password Connect:
+          - Status: {{ 'Healthy' if op_connect_health.status == 200 else 'Starting up...' }}
+          - URL: http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:8080
+
+          ✅ Secret management is now active!
+
+          Next Steps:
+          1. Verify secrets are syncing in Komodo global variables
+          2. Run 'make app-syncs' to setup application deployments

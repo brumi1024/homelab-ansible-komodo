@@ -1,0 +1,56 @@
+---
+# Bootstrap Komodo Global Variables for komodo-op Initial Deployment
+# This playbook creates the required variables in Komodo that komodo-op needs to start
+
+- name: Bootstrap Komodo Variables for komodo-op
+  hosts: localhost
+  gather_facts: false
+  vars:
+    komodo_port: "{{ hostvars[groups['core'][0]]['komodo_port'] }}"
+    komodo_base_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
+    komodo_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
+    komodo_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab') }}"
+
+  tasks:
+    - name: Check Komodo Core health
+      ansible.builtin.include_tasks: ../tasks/komodo_health_check.yml
+
+    - name: Create komodo-op global variables
+      ansible.builtin.include_tasks: ../tasks/komodo_variable_operations.yml
+      vars:
+        variables_list:
+          - name: "KOMODO_API_KEY"
+            value: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
+            description: "API key for komodo-op to authenticate with Komodo Core"
+            is_secret: true
+          - name: "KOMODO_API_SECRET"
+            value: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab') }}"
+            description: "API secret for komodo-op to authenticate with Komodo Core"
+            is_secret: true
+          - name: "OP_SERVICE_ACCOUNT_TOKEN"
+            value: "{{ lookup('community.general.onepassword', 'ConnectServer', field='OP_SERVICE_ACCOUNT_TOKEN', vault='Homelab') }}"
+            description: "1Password Connect service account token for komodo-op"
+            is_secret: true
+          - name: "OP_VAULT_UUID"
+            value: "{{ lookup('community.general.onepassword', 'ConnectServer', field='OP_VAULT_UUID', vault='Homelab') }}"
+            description: "1Password vault UUID for komodo-op to sync from"
+            is_secret: false
+
+    - name: Display bootstrap results
+      ansible.builtin.debug:
+        msg: |-
+          🔐 Komodo Variables Bootstrap Complete!
+
+          Variables Created/Verified:
+          {% if variables_results is defined and variables_results.results is defined %}
+          {% for result in variables_results.results %}
+          - {{ result.item.name }}: {{ 'Created' if result.status in [200, 201] else 'Already exists' }}
+          {% endfor %}
+          {% else %}
+          - Variables processed (check mode or task was skipped)
+          {% endif %}
+
+          ✅ komodo-op is now ready to be deployed
+
+          Note: These variables only need to be created once.
+          After komodo-op is deployed, it will manage additional secrets automatically.
