@@ -5,6 +5,9 @@
 # Use this to control ansible-lint behavior
 profile: production  # Options: min, basic, moderate, safety, shared, production
 
+# Offline mode - useful in CI if external resources aren't accessible
+offline: true  # Don't download roles - we mock them instead
+
 # Enable progressive mode to return success even with warnings
 # progressive: true
 
