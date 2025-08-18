@@ -3,9 +3,6 @@
 *.vault_password
 vault_pass*
 
-# 1Password environment files (contains no secrets but can be excluded if desired)
-# .env.1password
-
 # Ansible temporary files
 *.retry
 .ansible/

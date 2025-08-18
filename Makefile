@@ -1,180 +1,108 @@
-# Homelab Komodo Infrastructure Makefile
-# Unified development environment and deployment management
+# Komodo Infrastructure Makefile
+# Simplified deployment management with direct Ansible calls
 
-.PHONY: help setup lint \
-        deploy-bootstrap deploy-core deploy-periphery deploy-periphery-update \
-        deploy-periphery-update-version deploy-periphery-uninstall deploy-syncs \
-        deploy-full deploy-basic deploy-all deploy-init-auth deploy-bootstrap-op clean check-tools status info env
+.PHONY: help setup lint check \
+        docker core auth periphery deploy \
+        status clean
+
+# Ansible configuration
+INVENTORY := inventory/all.yml
+ANSIBLE_OPTS := -i $(INVENTORY)
 
 # Default target
 help: ## Show this help message
-	@echo "Homelab Komodo Infrastructure - Development Commands"
-	@echo "=================================================="
+	@echo "Komodo Infrastructure - Deployment Commands"
+	@echo "=========================================="
 	@echo
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-25s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 	@echo
 	@echo "Quick Start:"
-	@echo "  make setup           - Install all development dependencies"
-	@echo "  make lint            - Run all linting checks"
-	@echo "  make deploy-core     - Deploy core infrastructure"
-	@echo "  make deploy-full     - Complete deployment with GitOps setup"
+	@echo "  make setup    - Install Ansible dependencies"
+	@echo "  make deploy   - Complete deployment (all steps)"
+	@echo "  make lint     - Run code quality checks"
 
 # =============================================================================
-# Development Environment Setup
+# Setup and Dependencies
 # =============================================================================
 
-setup: check-tools ## Complete development environment setup
-	@echo "📦 Setting up development environment..."
-	@if command -v brew >/dev/null 2>&1 && [ -f Brewfile ]; then \
-		echo "📦 Installing system dependencies with Homebrew..."; \
-		brew bundle; \
-	else \
-		echo "ℹ️  No Homebrew or Brewfile found, skipping system dependencies"; \
-	fi
-	@echo "📦 Installing Python development dependencies..."
-	@pip3 install -r requirements-dev.txt
+setup: ## Install Ansible dependencies
 	@echo "📦 Installing Ansible dependencies..."
-	@ansible-galaxy install -r ansible/requirements.yml --force
-	@echo "✅ Development environment setup complete!"
-	@echo "   Run 'make lint' to check code quality"
-	@echo "   Run 'make deploy-core' to deploy core infrastructure"
+	@./scripts/setup-ansible.sh
+	@echo "✅ Setup complete!"
 
-check-tools: ## Verify required tools are installed
-	@echo "🔍 Checking required tools..."
-	@command -v python3 >/dev/null 2>&1 || { echo "❌ python3 is required but not installed"; exit 1; }
-	@command -v pip3 >/dev/null 2>&1 || { echo "❌ pip3 is required but not installed"; exit 1; }
-	@command -v docker >/dev/null 2>&1 || { echo "❌ docker is required but not installed"; exit 1; }
-	@command -v op >/dev/null 2>&1 || { echo "❌ 1password CLI (op) is required but not installed"; exit 1; }
-	@echo "✅ All required tools are installed"
+check: ## Check connectivity to all hosts
+	@echo "🔍 Checking connectivity..."
+	@cd ansible && ansible all $(ANSIBLE_OPTS) -m ping
 
 # =============================================================================
 # Code Quality
 # =============================================================================
 
-lint: ## Run all linting checks with fix (ansible-lint + yamllint)
+lint: ## Run ansible-lint and yamllint
 	@echo "🔍 Running ansible-lint..."
-	@cd ansible && ansible-lint --fix
+	@cd ansible && ansible-lint
 	@echo "🔍 Running yamllint..."
 	@yamllint ansible/ .github/workflows/
-	@echo "✅ All linting checks passed!"
+	@echo "✅ Linting complete!"
 
 # =============================================================================
-# Infrastructure Deployment
+# Individual Deployment Steps
 # =============================================================================
 
-deploy-bootstrap: ## Bootstrap all nodes (install Docker, Tailscale)
-	@echo "🚀 Bootstrapping infrastructure nodes..."
-	./scripts/deploy.sh bootstrap
+docker: ## Install Docker on all nodes
+	@echo "🐳 Installing Docker on all nodes..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/01_docker.yml
 
-deploy-core: ## Deploy Komodo Core (MongoDB + Core)
-	@echo "🚀 Deploying Komodo Core..."
-	./scripts/deploy.sh core
+core: ## Deploy Komodo Core (requires Docker)
+	@echo "🦎 Deploying Komodo Core..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/02_komodo_core.yml
 
-deploy-init-auth: ## Initialize API keys automatically
-	@echo "🔑 Initializing Komodo authentication and API keys..."
-	./scripts/deploy.sh init-auth
+auth: ## Initialize Komodo authentication (requires Core)
+	@echo "🔑 Initializing Komodo authentication..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/03_komodo_auth.yml
 
-deploy-periphery: ## Deploy Komodo Periphery nodes
-	@echo "🚀 Deploying Komodo Periphery nodes..."
-	./scripts/deploy.sh periphery
-
-deploy-periphery-update: ## Update periphery nodes to latest version
-	@echo "🔄 Updating Komodo Periphery to latest version..."
-	./scripts/deploy.sh periphery-update
-
-deploy-periphery-update-version: ## Update periphery to specific version (usage: make deploy-periphery-update-version VERSION=v1.18.4)
-	@if [ -z "$(VERSION)" ]; then \
-		echo "❌ VERSION parameter required. Usage: make deploy-periphery-update-version VERSION=v1.18.4"; \
-		exit 1; \
-	fi
-	@echo "🔄 Updating Komodo Periphery to version $(VERSION)..."
-	./scripts/deploy.sh periphery-update-version $(VERSION)
-
-deploy-periphery-uninstall: ## Remove periphery services
-	@echo "🗑️  Uninstalling Komodo Periphery..."
-	./scripts/deploy.sh periphery-uninstall
-
-deploy-bootstrap-op: ## Bootstrap Komodo variables for komodo-op
-	@echo "🔧 Bootstrapping komodo-op configuration..."
-	./scripts/deploy.sh bootstrap-komodo-op
-
-deploy-syncs: ## Setup GitOps syncs and webhooks
-	@echo "🔄 Setting up GitOps syncs..."
-	./scripts/deploy.sh setup-syncs
-
-deploy-full: deploy-bootstrap deploy-core deploy-init-auth deploy-periphery deploy-bootstrap-op deploy-syncs ## Complete end-to-end deployment with GitOps
-
-deploy-basic: ## Basic deployment (core + periphery without GitOps setup)
-	@echo "🚀 Running basic Komodo infrastructure deployment..."
-	./scripts/deploy.sh full
-
-# Legacy aliases
-deploy-all: deploy-full ## Alias for deploy-full (backwards compatibility)
+periphery: ## Deploy Komodo Periphery nodes (requires auth)
+	@echo "🔗 Deploying Komodo Periphery..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/04_komodo_periphery.yml
 
 # =============================================================================
-# Status and Information
+# Complete Deployment
 # =============================================================================
 
-status: ## Check status of Komodo services
-	@echo "🔍 Checking Komodo service status..."
-	./scripts/deploy.sh status
-
-info: ## Show deployment information
-	@echo "📋 Showing deployment information..."
-	./scripts/deploy.sh info
-
-check: ## Check connectivity to all hosts
-	@echo "🔍 Checking connectivity..."
-	./scripts/deploy.sh check
-
+deploy: ## Complete deployment (all steps in sequence)
+	@echo "🚀 Starting complete Komodo deployment..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) site.yml
 
 # =============================================================================
 # Maintenance Commands
 # =============================================================================
 
-clean: ## Clean up temporary files and caches
-	@echo "🧹 Cleaning up temporary files..."
-	find . -name "*.pyc" -delete
-	find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-	find . -name ".pytest_cache" -type d -exec rm -rf {} + 2>/dev/null || true
-	rm -rf .ansible/
-	rm -rf ansible/.ansible/
+status: ## Check status of Komodo services
+	@echo "🔍 Checking Komodo service status..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/status.yml
+
+clean: ## Clean up temporary files
+	@echo "🧹 Cleaning up..."
+	@find . -name "*.pyc" -delete
+	@find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+	@rm -rf ansible/.ansible/
 	@echo "✅ Cleanup complete!"
 
-update-deps: ## Update development dependencies
-	@echo "📦 Updating development dependencies..."
-	pip3 install --upgrade -r requirements-dev.txt
-	ansible-galaxy install -r ansible/requirements.yml --force
-	@echo "✅ Dependencies updated!"
-
 # =============================================================================
-# Environment Information
+# Advanced Options
 # =============================================================================
 
-env: ## Show environment and configuration information
-	@echo "🔧 Environment & Configuration"
-	@echo "============================="
-	@echo "OS: $$(uname -s) $$(uname -m)"
-	@echo "Shell: $$SHELL"
-	@echo "Working Directory: $$(pwd)"
-	@echo "Git Branch: $$(git branch --show-current 2>/dev/null || echo 'Not a git repository')"
-	@echo
-	@echo "Tool Versions:"
-	@echo "  Python: $$(python3 --version)"
-	@echo "  Ansible: $$(ansible --version | head -n1)"
-	@echo "  Docker: $$(docker --version)"
-	@echo "  1Password CLI: $$(op --version)"
-	@echo "  Git: $$(git --version)"
-	@echo
-
-# =============================================================================
-# Debugging and Development
-# =============================================================================
-
-debug: ## Run ansible-playbook with debug output (usage: make debug PLAYBOOK=site.yml)
+# Run specific playbook with custom options
+# Usage: make run PLAYBOOK=01_docker.yml OPTS="--check --diff"
+run: ## Run specific playbook (requires PLAYBOOK variable)
 	@if [ -z "$(PLAYBOOK)" ]; then \
-		echo "❌ PLAYBOOK parameter required. Usage: make debug PLAYBOOK=site.yml"; \
+		echo "❌ PLAYBOOK variable required. Usage: make run PLAYBOOK=01_docker.yml"; \
 		exit 1; \
 	fi
-	@echo "🐛 Running $(PLAYBOOK) in debug mode..."
-	ansible-playbook -vvv -i ansible/inventory/hosts.yml ansible/playbooks/$(PLAYBOOK)
+	@echo "🎯 Running $(PLAYBOOK)..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/$(PLAYBOOK) $(OPTS)
+
+# Run in check mode (dry run)
+check-deploy: ## Dry run deployment (check mode)
+	@echo "🔍 Dry run - checking what would change..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) site.yml --check --diff

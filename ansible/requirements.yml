@@ -11,9 +11,6 @@ roles:
   # Komodo periphery deployment with systemd
   - name: bpbradley.komodo
 
-  # Tailscale VPN management
-  - name: artis3n.tailscale
-
 # Required collections
 collections:
   # Docker management modules
