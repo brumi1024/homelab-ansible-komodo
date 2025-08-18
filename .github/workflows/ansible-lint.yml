@@ -20,6 +20,18 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install ansible-core
+        run: pip install ansible-core
+      
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install -r ansible/requirements.yml
+        
       - name: Run ansible-lint
         uses: ansible/ansible-lint@main
         with:

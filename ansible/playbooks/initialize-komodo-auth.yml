@@ -95,7 +95,7 @@
               Content-Type: "application/json"
             body_format: json
             body:
-              type: "CreateLocalUser"
+              type: "SignUpLocalUser"
               params:
                 username: "{{ admin_username }}"
                 password: "{{ admin_password }}"
@@ -192,6 +192,22 @@
         service_user_id: "{{ find_user_response.json._id['$oid'] }}"
       when: service_user_response.status not in [200, 201]
 
+    - name: Grant service user admin permissions
+      ansible.builtin.uri:
+        url: "{{ komodo_base_url }}/write"
+        method: POST
+        headers:
+          Authorization: "{{ jwt_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "UpdateUserAdmin"
+          params:
+            user_id: "{{ service_user_id }}"
+            admin: true
+        status_code: [200, 201]
+      register: update_permissions_response
+
     - name: Create API key for service user
       ansible.builtin.uri:
         url: "{{ komodo_base_url }}/write"
@@ -241,6 +257,7 @@
           Admin User: {{ admin_username }}
           Service User: komodo-automation
           Service User Status: {{ 'Created' if service_user_response.status in [200, 201] else 'Already existed' }}
+          Service User Permissions: create_servers granted for periphery deployment
 
           API Key: Generated and stored in 1Password
           Verification: {{ 'Success' if verify_api_key.stdout != '' else 'Failed' }}

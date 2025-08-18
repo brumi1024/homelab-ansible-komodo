@@ -3,12 +3,14 @@
 # Following bpbradley.komodo role pattern for clean organization
 
 all:
-  hosts:
-    # Localhost for delegated tasks
-    localhost:
-      ansible_connection: local
-
   children:
+    # Control machine (not managed by infrastructure playbooks)
+    control:
+      hosts:
+        localhost:
+          ansible_connection: local
+
+    # Managed Komodo infrastructure
     komodo:
       vars:
         # Global Ansible configuration

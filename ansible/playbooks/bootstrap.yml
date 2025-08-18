@@ -1,6 +1,6 @@
 ---
 - name: Bootstrap Homelab Infrastructure
-  hosts: all
+  hosts: komodo
   become: true
   gather_facts: true
 
