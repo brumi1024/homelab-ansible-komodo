@@ -1,0 +1,41 @@
+---
+- name: Deploy Komodo Core Infrastructure
+  hosts: core
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Check if node is bootstrapped
+      ansible.builtin.stat:
+        path: /opt/.bootstrap_complete
+      register: bootstrap_marker
+
+    - name: Fail if node not bootstrapped
+      ansible.builtin.fail:
+        msg: "Node not bootstrapped. Run bootstrap.yml first."
+      when: not bootstrap_marker.stat.exists
+
+    - name: Display deployment information
+      ansible.builtin.debug:
+        msg:
+          - "Deploying Komodo Core on: {{ inventory_hostname }}"
+          - "Site: {{ node_site }}"
+          - "Role: {{ komodo_role }}"
+
+  tasks:
+    - name: Deploy Komodo Core (MongoDB + Core)
+      ansible.builtin.include_role:
+        name: komodo
+      tags: [komodo]
+
+  post_tasks:
+    - name: Display next steps
+      ansible.builtin.debug:
+        msg:
+          - "🦎 Komodo Core deployment complete!"
+          - ""
+          - "Next Steps:"
+          - "1. [New deployments] Set KOMODO_DISABLE_USER_REGISTRATION to false to be able to create a local user."
+          - "2. 🔑 Generate API keys in Komodo UI (see docs/komodo-op-setup.md)"
+          - "3. 🔗 Deploy periphery nodes: ./deploy.sh periphery"
+          - "4. 🤖 Deploy komodo-op for secret sync"

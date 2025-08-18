@@ -1,0 +1,57 @@
+---
+- name: Bootstrap Homelab Infrastructure
+  hosts: komodo
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Check if bootstrap is already complete
+      ansible.builtin.stat:
+        path: /opt/.bootstrap_complete
+      register: bootstrap_marker
+
+    - name: Skip already bootstrapped nodes
+      ansible.builtin.meta: end_host
+      when: bootstrap_marker.stat.exists
+
+    - name: Display node information
+      ansible.builtin.debug:
+        msg:
+          - "Bootstrapping node: {{ inventory_hostname }}"
+          - "Site: {{ node_site }}"
+          - "Type: {{ node_type | default('generic') }}"
+          - "Ansible host: {{ ansible_host }}"
+
+  roles:
+    # Install Docker using geerlingguy's community role
+    - role: geerlingguy.docker
+      vars:
+        docker_edition: "ce"
+        docker_install_compose_plugin: true
+        docker_users:
+          - "{{ ansible_user }}"
+        docker_daemon_options:
+          log-driver: "local"
+          log-opts:
+            max-size: "10m"
+            max-file: "3"
+          storage-driver: "overlay2"
+          features:
+            buildkit: true
+      tags: [docker]
+
+    # Install and configure Tailscale using artis3n's community role
+    - role: artis3n.tailscale
+      tags: [tailscale]
+      when: ansible_connection != 'local'
+
+  tasks:
+    - name: Create bootstrap completion marker
+      ansible.builtin.file:
+        path: /opt/.bootstrap_complete
+        state: touch
+        mode: "0644"
+
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg: "Bootstrap completed for {{ inventory_hostname }}"
