@@ -1,26 +1,25 @@
 ---
-
 - name: Create Komodo installation directory
-  file:
+  ansible.builtin.file:
     path: "{{ komodo_install_dir }}"
     state: directory
     owner: "{{ ansible_user }}"
-    mode: '0755'
+    mode: "0755"
 
 - name: Generate Komodo Docker Compose file from template
-  template:
+  ansible.builtin.template:
     src: komodo-compose.yml.j2
     dest: "{{ komodo_install_dir }}/compose.yml"
-    mode: '0644'
-  notify: restart komodo
+    mode: "0644"
+  notify: Restart komodo
 
 - name: Generate Komodo environment configuration from template
-  template:
+  ansible.builtin.template:
     src: compose.env.j2
     dest: "{{ komodo_install_dir }}/compose.env"
-    mode: '0644'
-    backup: yes
-  notify: restart komodo
+    mode: "0644"
+    backup: true
+  notify: Restart komodo
 
 - name: Deploy Komodo with Docker Compose
   community.docker.docker_compose_v2:
@@ -32,36 +31,36 @@
     recreate: auto
 
 - name: Wait for MongoDB to be ready
-  wait_for:
+  ansible.builtin.wait_for:
     port: "{{ mongo_port }}"
     host: "localhost"
     delay: 10
     timeout: 300
-  ignore_errors: yes
-  register: mongo_wait_result
+  ignore_errors: true
+  register: komodo_mongo_wait_result
 
 - name: Fail if MongoDB is not ready
-  fail:
+  ansible.builtin.fail:
     msg: "MongoDB failed to start. Check Docker Compose logs and environment variables."
-  when: mongo_wait_result is failed
+  when: komodo_mongo_wait_result is failed
 
 - name: Wait for Komodo Core to be healthy
-  uri:
+  ansible.builtin.uri:
     url: "http://localhost:{{ komodo_port }}"
     method: GET
   retries: 30
   delay: 10
   register: komodo_health
   until: komodo_health.status == 200
-  ignore_errors: yes
+  ignore_errors: true
 
 - name: Fail if Komodo Core is not healthy
-  fail:
+  ansible.builtin.fail:
     msg: "Komodo Core failed to start. Check Docker Compose logs and environment variables."
   when: komodo_health is failed
 
 - name: Display Komodo deployment information
-  debug:
+  ansible.builtin.debug:
     msg:
       - "🦎 Komodo Core deployed successfully!"
       - "Web UI: http://{{ ansible_host }}:{{ komodo_port }}"

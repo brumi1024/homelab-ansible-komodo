@@ -4,7 +4,7 @@
 
 - name: Bootstrap Komodo Variables for komodo-op
   hosts: localhost
-  gather_facts: no
+  gather_facts: false
   vars:
     komodo_port: "{{ hostvars[groups['core'][0]]['komodo_port'] }}"
     komodo_base_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
@@ -13,7 +13,7 @@
 
   tasks:
     - name: Check Komodo Core health
-      uri:
+      ansible.builtin.uri:
         url: "{{ komodo_base_url }}"
         method: GET
         status_code: 200
@@ -21,7 +21,7 @@
       delay: 10
 
     - name: Bootstrap required Komodo global variables for komodo-op
-      uri:
+      ansible.builtin.uri:
         url: "{{ komodo_base_url }}/write"
         method: POST
         headers:
@@ -36,7 +36,7 @@
             value: "{{ item.value }}"
             description: "{{ item.description }}"
             is_secret: "{{ item.is_secret | default(false) }}"
-        status_code: [200, 201, 409]  # 409 if variable already exists
+        status_code: [200, 201, 409] # 409 if variable already exists
       loop:
         - name: "KOMODO_API_KEY"
           value: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
@@ -57,17 +57,17 @@
       register: bootstrap_results
 
     - name: Display bootstrap results
-      debug:
-        msg: |
+      ansible.builtin.debug:
+        msg: |-
           Bootstrap Results:
           {% for result in bootstrap_results.results %}
           - {{ result.item.name }}: {{ 'Created' if result.status in [200, 201] else 'Already exists' }}
           {% endfor %}
-          
+
           Next Steps:
           1. Deploy komodo-op stack via Komodo UI or resource sync
           2. Wait for 1Password Connect to start and komodo-op to begin syncing
           3. Check Komodo global variables for new secrets from 1Password
-          
+
           Note: This bootstrap only needs to be run once for initial setup.
           After komodo-op is running, it will manage variables automatically.

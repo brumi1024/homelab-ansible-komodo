@@ -1,22 +1,22 @@
 ---
 - name: Bootstrap Homelab Infrastructure
   hosts: all
-  become: yes
-  gather_facts: yes
-  
+  become: true
+  gather_facts: true
+
   pre_tasks:
     - name: Check if bootstrap is already complete
-      stat:
+      ansible.builtin.stat:
         path: /opt/.bootstrap_complete
       register: bootstrap_marker
-      
+
     - name: Skip already bootstrapped nodes
-      meta: end_host
+      ansible.builtin.meta: end_host
       when: bootstrap_marker.stat.exists
-      
+
     - name: Display node information
-      debug:
-        msg: 
+      ansible.builtin.debug:
+        msg:
           - "Bootstrapping node: {{ inventory_hostname }}"
           - "Site: {{ node_site }}"
           - "Type: {{ node_type | default('generic') }}"
@@ -26,7 +26,7 @@
     # Install Docker using geerlingguy's community role
     - role: geerlingguy.docker
       vars:
-        docker_edition: 'ce'
+        docker_edition: "ce"
         docker_install_compose_plugin: true
         docker_users:
           - "{{ ansible_user }}"
@@ -47,11 +47,11 @@
 
   tasks:
     - name: Create bootstrap completion marker
-      file:
+      ansible.builtin.file:
         path: /opt/.bootstrap_complete
         state: touch
-        mode: '0644'
-      
+        mode: "0644"
+
     - name: Display completion message
-      debug:
+      ansible.builtin.debug:
         msg: "Bootstrap completed for {{ inventory_hostname }}"

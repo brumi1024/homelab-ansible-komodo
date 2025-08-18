@@ -51,9 +51,9 @@ check-tools: ## Verify required tools are installed
 # Code Quality
 # =============================================================================
 
-lint: ## Run all linting checks (ansible-lint + yamllint)
+lint: ## Run all linting checks with fix (ansible-lint + yamllint)
 	@echo "🔍 Running ansible-lint..."
-	@cd ansible && ansible-lint
+	@cd ansible && ansible-lint --fix
 	@echo "🔍 Running yamllint..."
 	@yamllint ansible/ .github/workflows/
 	@echo "✅ All linting checks passed!"
