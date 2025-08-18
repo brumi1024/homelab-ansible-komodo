@@ -1,8 +1,49 @@
 ---
-# Single inventory file with all hosts and configuration
-# Following bpbradley.komodo role pattern for clean organization
+# =============================================================================
+# KOMODO INVENTORY - SINGLE SOURCE OF TRUTH
+# =============================================================================
+# All configuration centralized in this file for maximum simplicity
 
 all:
+  vars:
+    # Network & Connection Settings
+    ansible_user: root
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa
+
+    # Komodo Core Settings
+    komodo_install_dir: "/opt/komodo"
+    komodo_port: 9120
+    komodo_mongo_port: 27017
+    komodo_mongo_cache_size_gb: 2
+
+    # Komodo Periphery Settings
+    komodo_periphery_port: 8120
+    komodo_periphery_version: "latest"
+    komodo_user: "komodo"
+    komodo_group: "komodo"
+    komodo_bind_ip: "0.0.0.0"
+    komodo_bind_port: "{{ komodo_periphery_port }}"
+    komodo_allowed_ips: []
+    komodo_secrets: []
+    komodo_periphery_root_directory: "/etc/komodo"
+    enable_server_management: true
+
+    # Computed URLs
+    komodo_core_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
+    komodo_periphery_url_pattern: "https://{host}:{{ komodo_periphery_port }}"
+
+    # Authentication Settings
+    komodo_auth_base_url: "{{ komodo_core_url }}"
+    komodo_auth_admin_username: "{{ lookup('community.general.onepassword', 'Komodo', field='username', vault='Homelab') }}"
+    komodo_auth_admin_password: "{{ lookup('community.general.onepassword', 'Komodo', field='password', vault='Homelab') }}"
+    komodo_auth_service_user: "komodo-automation"
+    komodo_auth_service_user_description: "Service user for automated deployments and API access"
+    komodo_auth_api_key_name: "deployment-api-key"
+
+    # API Credentials (1Password lookups)
+    komodo_core_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
+    komodo_core_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab') }}"
+
   children:
     # Control machine (not managed by infrastructure playbooks)
     control:
@@ -13,47 +54,8 @@ all:
     # Managed Komodo infrastructure
     komodo:
       vars:
-        # Global Ansible configuration
-        ansible_user: root
-        ansible_ssh_private_key_file: ~/.ssh/id_rsa
-
-        # Komodo Core connection settings
+        # Parse-time variable needed for ansible_host resolution
         tailnet: "{{ lookup('community.general.onepassword', 'Network', field='tailnet', vault='Homelab') }}"
-        komodo_core_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
-
-        # API credentials retrieved from 1Password
-        komodo_core_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
-        komodo_core_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab') }}"
-
-        # Enable server management for automatic registration with Komodo Core
-        enable_server_management: true
-
-        # Komodo Core deployment configuration
-        komodo_install_dir: "/opt/komodo"
-        komodo_port: 9120
-        mongo_port: 27017
-        mongo_cache_size_gb: 0.25
-
-        # Komodo Periphery settings
-        komodo_version: "latest"
-        komodo_bind_ip: "0.0.0.0" # IPv4 bind address
-        komodo_bind_port: 8120 # Default systemd periphery port
-        komodo_allowed_ips: [] # Empty = allow all (can be overridden per host)
-        komodo_secrets: [] # Can be extended per host/site
-        periphery_root_directory: "/etc/komodo"
-
-        # Service management
-        komodo_user: "komodo"
-        komodo_group: "komodo"
-
-        # Tailscale configuration (for artis3n.tailscale role)
-        tailscale_args: "--accept-routes --accept-dns"
-
-        # 1Password Connect configuration (for future komodo-op deployment)
-        op_connect_api_port: "8080"
-        op_connect_sync_port: "8081"
-        op_credentials_path: "/opt/onepassword-connect/1password-credentials.json"
-
       children:
         core:
           hosts:
@@ -73,8 +75,7 @@ all:
                 - monitoring
                 - tautulli
               # Same-host periphery configuration
-              server_address: "https://host.docker.internal:8120"
-              komodo_bind_ip: "0.0.0.0" # Listen on all interfaces for systemd
+              server_address: "https://host.docker.internal:{{ komodo_periphery_port }}"
 
             sequoia-server:
               ansible_host: "docker-test2.{{ tailnet }}"
@@ -84,5 +85,5 @@ all:
                 - zigbee2mqtt
               # Remote periphery with auto-generated passkey
               generate_server_passkey: true
-              # Use Tailscale hostname for reliable cross-site connectivity
-              server_address: "https://{{ ansible_host }}:8120"
+              # Use Tailnet hostname for reliable cross-site connectivity
+              server_address: "https://{{ ansible_host }}:{{ komodo_periphery_port }}"
