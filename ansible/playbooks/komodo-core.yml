@@ -1,36 +1,36 @@
 ---
 - name: Deploy Komodo Core Infrastructure
   hosts: core
-  become: yes
-  gather_facts: yes
-  
+  become: true
+  gather_facts: true
+
   pre_tasks:
     - name: Check if node is bootstrapped
-      stat:
+      ansible.builtin.stat:
         path: /opt/.bootstrap_complete
       register: bootstrap_marker
-      
+
     - name: Fail if node not bootstrapped
-      fail:
+      ansible.builtin.fail:
         msg: "Node not bootstrapped. Run bootstrap.yml first."
       when: not bootstrap_marker.stat.exists
-      
+
     - name: Display deployment information
-      debug:
-        msg: 
+      ansible.builtin.debug:
+        msg:
           - "Deploying Komodo Core on: {{ inventory_hostname }}"
           - "Site: {{ node_site }}"
           - "Role: {{ komodo_role }}"
 
   tasks:
     - name: Deploy Komodo Core (MongoDB + Core)
-      include_role:
+      ansible.builtin.include_role:
         name: komodo
       tags: [komodo]
 
   post_tasks:
     - name: Display next steps
-      debug:
+      ansible.builtin.debug:
         msg:
           - "🦎 Komodo Core deployment complete!"
           - ""

@@ -4,7 +4,7 @@
 
 - name: Setup Komodo Resource Syncs
   hosts: localhost
-  gather_facts: no
+  gather_facts: false
   vars:
     komodo_port: "{{ hostvars[groups['core'][0]]['komodo_port'] }}"
     komodo_base_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
@@ -13,7 +13,7 @@
 
   tasks:
     - name: Check Komodo Core health
-      uri:
+      ansible.builtin.uri:
         url: "{{ komodo_base_url }}"
         method: GET
         status_code: 200
@@ -21,7 +21,7 @@
       delay: 10
 
     - name: Create komodo-op resource sync
-      uri:
+      ansible.builtin.uri:
         url: "{{ komodo_base_url }}/write"
         method: POST
         headers:
@@ -42,15 +42,15 @@
               on_pull: "PullAndDeploy"
               auto_pull: true
               auto_deploy: true
-        status_code: [200, 201, 409, 500]  # 409 if already exists, 500 for unique name error
+        status_code: [200, 201, 409, 500] # 409 if already exists, 500 for unique name error
       register: komodo_op_sync_result
 
     - name: Debug komodo-op sync result
-      debug:
+      ansible.builtin.debug:
         var: komodo_op_sync_result
 
     - name: Create application stacks resource sync
-      uri:
+      ansible.builtin.uri:
         url: "{{ komodo_base_url }}/write"
         method: POST
         headers:
@@ -71,16 +71,15 @@
               on_pull: "PullAndDeploy"
               auto_pull: true
               auto_deploy: true
-        status_code: [200, 201, 409, 500]  # 409 if already exists, 500 for unique name error
+        status_code: [200, 201, 409, 500] # 409 if already exists, 500 for unique name error
       register: app_stacks_sync_result
 
     - name: Debug application stacks sync result
-      debug:
+      ansible.builtin.debug:
         var: app_stacks_sync_result
 
-
     - name: Create webhook for komodo-op sync
-      uri:
+      ansible.builtin.uri:
         url: "{{ komodo_base_url }}/write"
         method: POST
         headers:
@@ -93,12 +92,12 @@
           params:
             sync: "{{ komodo_op_sync_result.json.id | default('komodo-op-sync') }}"
             action: "Sync"
-        status_code: [200, 201, 409, 500]  # 409 if already exists, 500 for unique name error
+        status_code: [200, 201, 409, 500] # 409 if already exists, 500 for unique name error
       register: komodo_op_webhook_result
       when: komodo_op_sync_result.status != 409
 
     - name: Create webhook for application stacks sync
-      uri:
+      ansible.builtin.uri:
         url: "{{ komodo_base_url }}/write"
         method: POST
         headers:
@@ -111,32 +110,36 @@
           params:
             sync: "{{ app_stacks_sync_result.json.id | default('application-stacks-sync') }}"
             action: "Sync"
-        status_code: [200, 201, 409, 500]  # 409 if already exists, 500 for unique name error
+        status_code: [200, 201, 409, 500] # 409 if already exists, 500 for unique name error
       register: app_stacks_webhook_result
       when: app_stacks_sync_result.status != 409
 
     - name: Display setup summary
-      debug:
-        msg: |
+      ansible.builtin.debug:
+        msg: |-
           Komodo Resource Syncs Setup Complete!
-          
+
           komodo-op-sync:
-            Status: {{ 'Created' if komodo_op_sync_result.status in [200, 201] else ('Already exists' if komodo_op_sync_result.status in [409, 500] else 'Error: ' + komodo_op_sync_result.status|string) }}
+            Status: {{ 'Created' if komodo_op_sync_result.status in [200, 201]
+              else ('Already exists' if komodo_op_sync_result.status in [409, 500]
+              else 'Error: ' + komodo_op_sync_result.status | string) }}
             Repository: brumi1024/deploy-komodo-op
-            
+
           application-stacks-sync:
-            Status: {{ 'Created' if app_stacks_sync_result.status in [200, 201] else ('Already exists' if app_stacks_sync_result.status in [409, 500] else 'Error: ' + app_stacks_sync_result.status|string) }}
+            Status: {{ 'Created' if app_stacks_sync_result.status in [200, 201]
+              else ('Already exists' if app_stacks_sync_result.status in [409, 500]
+              else 'Error: ' + app_stacks_sync_result.status | string) }}
             Repository: brumi1024/homelab-komodo-stacks
-            
+
           Next Steps:
           1. Create GitHub repositories and push code
           2. Configure GitHub webhooks to trigger automatic deployments
           3. Deploy komodo-op stack first to populate secrets
           4. Deploy application stacks that depend on the secrets
-          
+
           Webhook URLs (will be available after webhook creation):
           - komodo-op: {{ komodo_base_url }}/api/sync/komodo-op-sync/webhook
           - app-stacks: {{ komodo_base_url }}/api/sync/application-stacks-sync/webhook
-          
+
           Note: Configure these URLs in GitHub webhook settings without authentication.
           Port is configurable via komodo_port variable (default: 9120)
