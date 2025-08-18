@@ -1,0 +1,83 @@
+# Ansible Vault password files
+.vault_password
+*.vault_password
+vault_pass*
+
+# 1Password environment files (contains no secrets but can be excluded if desired)
+# .env.1password
+
+# Ansible temporary files
+*.retry
+.ansible/
+
+# Environment files
+.env
+.env.local
+
+# SSH keys
+*.pem
+*.key
+id_rsa*
+
+# 1Password credentials (if accidentally copied locally)
+1password-credentials.json
+op-credentials.json
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Pre-commit
+.pre-commit-config.yaml
+
+# Logs
+*.log
