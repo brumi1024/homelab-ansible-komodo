@@ -3,8 +3,8 @@
 
 .PHONY: help setup lint \
         deploy-bootstrap deploy-core deploy-periphery deploy-periphery-update \
-        deploy-periphery-update-version deploy-periphery-uninstall deploy-syncs deploy-all \
-        deploy-full deploy-init-auth deploy-bootstrap-op clean check-tools status info env
+        deploy-periphery-update-version deploy-periphery-uninstall deploy-syncs \
+        deploy-full deploy-basic deploy-all deploy-init-auth deploy-bootstrap-op clean check-tools status info env
 
 # Default target
 help: ## Show this help message
@@ -17,7 +17,7 @@ help: ## Show this help message
 	@echo "  make setup           - Install all development dependencies"
 	@echo "  make lint            - Run all linting checks"
 	@echo "  make deploy-core     - Deploy core infrastructure"
-	@echo "  make deploy-init-auth- Initialize API keys automatically"
+	@echo "  make deploy-full     - Complete deployment with GitOps setup"
 
 # =============================================================================
 # Development Environment Setup
@@ -102,11 +102,14 @@ deploy-syncs: ## Setup GitOps syncs and webhooks
 	@echo "🔄 Setting up GitOps syncs..."
 	./scripts/deploy.sh setup-syncs
 
-deploy-full: ## Complete deployment (bootstrap + core + auth + periphery)
-	@echo "🚀 Running complete Komodo infrastructure deployment..."
+deploy-full: deploy-bootstrap deploy-core deploy-init-auth deploy-periphery deploy-bootstrap-op deploy-syncs ## Complete end-to-end deployment with GitOps
+
+deploy-basic: ## Basic deployment (core + periphery without GitOps setup)
+	@echo "🚀 Running basic Komodo infrastructure deployment..."
 	./scripts/deploy.sh full
 
-deploy-all: deploy-bootstrap deploy-core deploy-init-auth deploy-periphery deploy-bootstrap-op deploy-syncs ## Step-by-step complete deployment
+# Legacy aliases
+deploy-all: deploy-full ## Alias for deploy-full (backwards compatibility)
 
 # =============================================================================
 # Status and Information
