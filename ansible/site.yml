@@ -1,0 +1,35 @@
+---
+# Komodo Infrastructure Master Playbook
+# This playbook orchestrates the complete deployment of Komodo infrastructure
+# Run with: ansible-playbook -i inventory/all.yml site.yml
+
+- name: Install Docker on all nodes
+  import_playbook: playbooks/01_docker.yml
+  tags: [docker, bootstrap]
+
+- name: Deploy Komodo Core
+  import_playbook: playbooks/02_komodo_core.yml
+  tags: [core]
+
+- name: Initialize Komodo Authentication
+  import_playbook: playbooks/03_komodo_auth.yml
+  tags: [auth]
+
+- name: Deploy Komodo Periphery
+  import_playbook: playbooks/04_komodo_periphery.yml
+  tags: [periphery]
+
+- name: Display deployment summary
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Show deployment completion message
+      ansible.builtin.debug:
+        msg:
+          - "🎉 Komodo Infrastructure Deployment Complete!"
+          - ""
+          - "🖥️  Komodo Core: http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
+          - "🔗 Periphery nodes: {{ groups['periphery'] | length }} deployed"
+          - ""
+          - "✅ All services are running and ready for deployments!"
+          - "   Log into the Komodo UI to start managing your infrastructure."

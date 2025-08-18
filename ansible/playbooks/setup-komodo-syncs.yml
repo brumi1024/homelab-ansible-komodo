@@ -142,4 +142,4 @@
           - app-stacks: {{ komodo_base_url }}/api/sync/application-stacks-sync/webhook
 
           Note: Configure these URLs in GitHub webhook settings without authentication.
-          Port is configurable via komodo_port variable (default: 9120)
+          Port is configurable via komodo_port variable

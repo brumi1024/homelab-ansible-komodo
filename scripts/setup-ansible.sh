@@ -31,7 +31,6 @@ echo
 echo -e "${BLUE}External roles installed:${NC}"
 echo "  • geerlingguy.docker (Docker installation)"
 echo "  • bpbradley.komodo (Komodo periphery management)"
-echo "  • artis3n.tailscale (Tailscale VPN management)"
 echo
 echo -e "${BLUE}Collections installed:${NC}"
 echo "  • community.docker (Docker management modules)"
