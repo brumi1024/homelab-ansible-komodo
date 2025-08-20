@@ -19,11 +19,21 @@
   import_playbook: playbooks/04_komodo_periphery.yml
   tags: [periphery]
 
+- name: Bootstrap komodo-op Variables
+  import_playbook: playbooks/05_bootstrap_komodo_op.yml
+  when: enable_komodo_op | default(false) | bool
+  tags: [komodo-op, secrets]
+
+- name: Deploy komodo-op Stack
+  import_playbook: playbooks/06_deploy_komodo_op.yml
+  when: enable_komodo_op | default(false) | bool
+  tags: [komodo-op, secrets]
+
 - name: Display deployment summary
   hosts: localhost
   gather_facts: false
   tasks:
-    - name: Show deployment completion message
+    - name: Show deployment completion message (without komodo-op)
       ansible.builtin.debug:
         msg:
           - "🎉 Komodo Infrastructure Deployment Complete!"
@@ -33,3 +43,23 @@
           - ""
           - "✅ All services are running and ready for deployments!"
           - "   Log into the Komodo UI to start managing your infrastructure."
+          - ""
+          - "💡 Optional: Run 'make deploy-with-op' to enable secret management with komodo-op"
+      when: not (enable_komodo_op | default(false) | bool)
+
+    - name: Show deployment completion message (with komodo-op)
+      ansible.builtin.debug:
+        msg:
+          - "🎉 Komodo Infrastructure Deployment Complete!"
+          - ""
+          - "🖥️  Komodo Core: http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
+          - "🔗 Periphery nodes: {{ groups['periphery'] | length }} deployed"
+          - "🔐 komodo-op: Secret management enabled with 1Password Connect"
+          - ""
+          - "✅ All services are running and ready for deployments!"
+          - "   Log into the Komodo UI to start managing your infrastructure."
+          - ""
+          - "🚀 Next steps:"
+          - "   1. Verify secrets are syncing from 1Password"
+          - "   2. Run 'make app-syncs' to setup application deployments"
+      when: enable_komodo_op | default(false) | bool
