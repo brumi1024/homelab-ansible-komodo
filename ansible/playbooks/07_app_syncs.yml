@@ -1,0 +1,50 @@
+---
+# Setup Komodo Resource Syncs for Application Stacks
+# This playbook creates resource syncs for application stacks GitOps workflow
+# Run this manually after komodo-op deployment to setup application deployments
+
+- name: Setup Application Resource Syncs
+  hosts: localhost
+  gather_facts: false
+  vars:
+    komodo_port: "{{ hostvars[groups['core'][0]]['komodo_port'] }}"
+    komodo_base_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
+    komodo_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
+    komodo_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab') }}"
+
+  tasks:
+    - name: Create application stacks resource sync
+      ansible.builtin.include_tasks: ../tasks/komodo_sync_operations.yml
+      vars:
+        sync_config:
+          name: "application-stacks-sync"
+          repo: "{{ app_stacks_repo | default('brumi1024/homelab-komodo-stacks') }}"
+          branch: "{{ app_stacks_branch | default('main') }}"
+          git_account: "{{ app_stacks_git_account | default('brumi1024') }}"
+          resource_path: "*/stack.toml"
+          on_clone: "PullAndDeploy"
+          on_pull: "PullAndDeploy"
+          auto_pull: true
+          auto_deploy: true
+        trigger_sync: false # Don't trigger initial sync, let it happen naturally
+
+    - name: Display app syncs setup summary
+      ansible.builtin.debug:
+        msg: |-
+          🎉 Application Resource Syncs Setup Complete!
+
+          Resource Sync Details:
+          - Name: application-stacks-sync
+          - Status: {{ 'Created' if resource_sync_result.status in [200, 201] else 'Already exists' }}
+          - Repository: {{ app_stacks_repo | default('brumi1024/homelab-komodo-stacks') }}
+          - Resource Path: */stack.toml
+
+          Webhook URL:
+          {{ komodo_base_url }}/api/sync/application-stacks-sync/webhook
+
+          ✅ Ready for GitOps deployments!
+
+          Next Steps:
+          1. Push application stacks to {{ app_stacks_repo | default('brumi1024/homelab-komodo-stacks') }}
+          2. Configure GitHub webhook with the URL above
+          3. Applications will auto-deploy on push

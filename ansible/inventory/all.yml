@@ -44,6 +44,17 @@ all:
     komodo_core_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
     komodo_core_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab') }}"
 
+    # komodo-op Configuration (Secret Management)
+    enable_komodo_op: false  # Set to true to enable komodo-op deployment
+    komodo_op_repo: "brumi1024/deploy-komodo-op"
+    komodo_op_branch: "main"
+    komodo_op_git_account: "brumi1024"
+
+    # Application Stacks Configuration
+    app_stacks_repo: "brumi1024/homelab-komodo-stacks"
+    app_stacks_branch: "main"
+    app_stacks_git_account: "brumi1024"
+
   children:
     # Control machine (not managed by infrastructure playbooks)
     control:
