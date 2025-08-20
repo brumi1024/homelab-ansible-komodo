@@ -86,10 +86,10 @@
   until: sync_status.json.info.pending_error is not defined or sync_status.json.info.pending_error == ""
   retries: "{{ sync_wait_retries | default(30) }}"
   delay: "{{ sync_wait_delay | default(10) }}"
-  failed_when: 
-    - sync_status.json.info.pending_error is defined 
+  failed_when:
+    - sync_status.json.info.pending_error is defined
     - sync_status.json.info.pending_error != ""
-  when: 
+  when:
     - trigger_sync | default(false)
     - sync_trigger_result is defined
     - wait_for_sync_completion | default(true)
