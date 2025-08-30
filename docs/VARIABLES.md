@@ -1,6 +1,6 @@
 # Komodo Configuration Reference
 
-This document provides a comprehensive reference for all configuration variables in the Komodo homelab infrastructure.
+This document provides a reference for all configuration variables in the Komodo homelab infrastructure.
 
 ## Configuration Architecture
 
@@ -18,7 +18,7 @@ All variables are now defined in `inventory/all.yml` at the `all.vars` level.
 |----------|---------|-------------|
 | `ansible_user` | `root` | SSH user for Ansible connections |
 | `ansible_ssh_private_key_file` | `~/.ssh/id_rsa` | SSH private key path |
-| `tailnet` | `{{ lookup('community.general.onepassword', 'Network', field='tailnet', vault='Homelab') }}` | Tailscale network name (in `komodo.vars`) |
+| `tailnet` | `{{ lookup('community.general.onepassword', 'Network', field='tailnet', vault='Homelab Ansible') }}` | Tailscale network name (in `komodo.vars`) |
 
 ### Komodo Core Settings
 | Variable | Default | Description |

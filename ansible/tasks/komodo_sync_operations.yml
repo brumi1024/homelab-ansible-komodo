@@ -83,12 +83,10 @@
         sync: "{{ resource_sync_result.json.id | default(sync_config.name) }}"
     status_code: 200
   register: sync_status
-  until: sync_status.json.info.pending_error is not defined or sync_status.json.info.pending_error == ""
+  until: sync_status.json.info.pending_error is none or sync_status.json.info.pending_error == ""
   retries: "{{ sync_wait_retries | default(30) }}"
   delay: "{{ sync_wait_delay | default(10) }}"
-  failed_when:
-    - sync_status.json.info.pending_error is defined
-    - sync_status.json.info.pending_error != ""
+  failed_when: sync_status.json.info.pending_error is not none and sync_status.json.info.pending_error != ""
   when:
     - trigger_sync | default(false)
     - sync_trigger_result is defined

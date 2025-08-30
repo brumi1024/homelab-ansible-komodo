@@ -8,8 +8,8 @@
   vars:
     komodo_port: "{{ hostvars[groups['core'][0]]['komodo_port'] }}"
     komodo_base_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
-    komodo_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
-    komodo_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab') }}"
+    komodo_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab Ansible') }}"
+    komodo_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab Ansible') }}"
 
   tasks:
     - name: Check Komodo Core health
@@ -20,21 +20,25 @@
       vars:
         variables_list:
           - name: "KOMODO_API_KEY"
-            value: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
+            value: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab Ansible') }}"
             description: "API key for komodo-op to authenticate with Komodo Core"
             is_secret: true
           - name: "KOMODO_API_SECRET"
-            value: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab') }}"
+            value: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab Ansible') }}"
             description: "API secret for komodo-op to authenticate with Komodo Core"
             is_secret: true
-          - name: "OP_SERVICE_ACCOUNT_TOKEN"
-            value: "{{ lookup('community.general.onepassword', 'ConnectServer', field='OP_SERVICE_ACCOUNT_TOKEN', vault='Homelab') }}"
-            description: "1Password Connect service account token for komodo-op"
-            is_secret: true
           - name: "OP_VAULT_UUID"
-            value: "{{ lookup('community.general.onepassword', 'ConnectServer', field='OP_VAULT_UUID', vault='Homelab') }}"
+            value: "{{ lookup('community.general.onepassword', 'Komodo Homelab Credentials File', field='op_vault_uuid', vault='Homelab Ansible') }}"
             description: "1Password vault UUID for komodo-op to sync from"
             is_secret: false
+          - name: "OP_SERVICE_ACCOUNT_TOKEN"
+            value: "{{ lookup('community.general.onepassword', 'Komodo Homelab Access Token: Komodo Homelab Stacks', field='credential', vault='Homelab Ansible') }}"
+            description: "1Password Connect service account token for komodo-op"
+            is_secret: true
+          - name: "OP_CREDENTIALS_BASE64"
+            value: "{{ lookup('community.general.onepassword_doc', 'Komodo Homelab Credentials File', vault='Homelab Ansible') | b64encode | replace('\n', '') }}"
+            description: "Base64-encoded 1Password Connect credentials file for komodo-op"
+            is_secret: true
 
     - name: Display bootstrap results
       ansible.builtin.debug:

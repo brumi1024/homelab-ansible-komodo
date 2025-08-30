@@ -34,18 +34,18 @@ all:
 
     # Authentication Settings
     komodo_auth_base_url: "{{ komodo_core_url }}"
-    komodo_auth_admin_username: "{{ lookup('community.general.onepassword', 'Komodo', field='username', vault='Homelab') }}"
-    komodo_auth_admin_password: "{{ lookup('community.general.onepassword', 'Komodo', field='password', vault='Homelab') }}"
+    komodo_auth_admin_username: "{{ lookup('community.general.onepassword', 'Komodo', field='username', vault='Homelab Ansible') }}"
+    komodo_auth_admin_password: "{{ lookup('community.general.onepassword', 'Komodo', field='password', vault='Homelab Ansible') }}"
     komodo_auth_service_user: "komodo-automation"
     komodo_auth_service_user_description: "Service user for automated deployments and API access"
     komodo_auth_api_key_name: "deployment-api-key"
 
     # API Credentials (1Password lookups)
-    komodo_core_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab') }}"
-    komodo_core_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab') }}"
+    komodo_core_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab Ansible') }}"
+    komodo_core_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab Ansible') }}"
 
     # komodo-op Configuration (Secret Management)
-    enable_komodo_op: false  # Set to true to enable komodo-op deployment
+    enable_komodo_op: true  # Set to true to enable komodo-op deployment
     komodo_op_repo: "brumi1024/deploy-komodo-op"
     komodo_op_branch: "main"
     komodo_op_git_account: "brumi1024"
@@ -66,7 +66,7 @@ all:
     komodo:
       vars:
         # Parse-time variable needed for ansible_host resolution
-        tailnet: "{{ lookup('community.general.onepassword', 'Network', field='tailnet', vault='Homelab') }}"
+        tailnet: "{{ lookup('community.general.onepassword', 'Network', field='tailnet', vault='Homelab Ansible') }}"
       children:
         core:
           hosts:
@@ -80,20 +80,12 @@ all:
             home-server:
               ansible_host: "docker-test.{{ tailnet }}"
               node_site: home
-              node_stacks:
-                - servarr
-                - homepage
-                - monitoring
-                - tautulli
               # Same-host periphery configuration
               server_address: "https://host.docker.internal:{{ komodo_periphery_port }}"
 
             sequoia-server:
               ansible_host: "docker-test2.{{ tailnet }}"
               node_site: sequoia
-              node_stacks:
-                - frigate
-                - zigbee2mqtt
               # Remote periphery with auto-generated passkey
               generate_server_passkey: true
               # Use Tailnet hostname for reliable cross-site connectivity
