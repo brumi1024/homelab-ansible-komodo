@@ -85,12 +85,12 @@
       Content-Type: "application/json"
     body_format: json
     body:
-      type: "ListStackServices"
+      type: "ListStacks"
       params:
         stack: "{{ found_stack | default(stack_name) }}"
     status_code: 200
   register: stack_services
-  until: stack_services.json | selectattr('container', 'defined') | list | length > 0
+  until: stack_services.json[0].info.state is defined and stack_services.json[0].info.state == "running"
   retries: "{{ stack_running_retries | default(60) }}"
   delay: "{{ stack_running_delay | default(10) }}"
   when:

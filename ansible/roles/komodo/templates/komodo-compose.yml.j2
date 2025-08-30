@@ -38,8 +38,6 @@ services:
       KOMODO_DATABASE_USERNAME: ${KOMODO_DB_USERNAME}
       KOMODO_DATABASE_PASSWORD: ${KOMODO_DB_PASSWORD}
     volumes:
-      ## Core cache for repos for latest commit hash / contents
-      - repo-cache:/repo-cache
       ## Store sync files on server
       - ${PERIPHERY_ROOT_DIRECTORY}/syncs:/syncs
       ## Optionally mount a custom core.config.toml
