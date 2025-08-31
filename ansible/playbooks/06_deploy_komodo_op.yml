@@ -50,6 +50,27 @@
       ansible.builtin.set_fact:
         komodo_op_stack: "{{ found_stack }}"
 
+    - name: Deploy komodo-op stack
+      ansible.builtin.uri:
+        url: "{{ komodo_base_url }}/execute"
+        method: POST
+        headers:
+          X-Api-Key: "{{ komodo_api_key }}"
+          X-Api-Secret: "{{ komodo_api_secret }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "DeployStack"
+          params:
+            stack: "{{ komodo_op_stack }}"
+            services: []  # Deploy all services
+        status_code: 200
+      register: deploy_stack_result
+
+    - name: Wait for stack deployment to start
+      ansible.builtin.pause:
+        seconds: 10
+
     - name: Test 1Password Connect accessibility
       ansible.builtin.uri:
         url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:8080/v1/heartbeat"
