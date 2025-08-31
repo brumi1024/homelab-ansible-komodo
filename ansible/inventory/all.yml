@@ -71,14 +71,14 @@ all:
         core:
           hosts:
             main-server:
-              ansible_host: "docker-test.{{ tailnet }}"
+              ansible_host: "docker-test1.{{ tailnet }}"
               node_site: home
               komodo_role: core
 
         periphery:
           hosts:
             home-server:
-              ansible_host: "docker-test.{{ tailnet }}"
+              ansible_host: "docker-test1.{{ tailnet }}"
               node_site: home
               # Same-host periphery configuration
               server_address: "https://host.docker.internal:{{ komodo_periphery_port }}"

@@ -2,7 +2,7 @@
 # Simplified deployment management with direct Ansible calls
 
 .PHONY: help setup lint check \
-        docker core auth periphery deploy deploy-with-op \
+        docker core auth periphery deploy \
         komodo-op app-syncs \
         core-upgrade periphery-upgrade periphery-uninstall \
         status clean
@@ -20,8 +20,7 @@ help: ## Show this help message
 	@echo
 	@echo "Quick Start:"
 	@echo "  make setup           - Install Ansible dependencies"
-	@echo "  make deploy          - Complete deployment (without komodo-op)"
-	@echo "  make deploy-with-op  - Complete deployment (with komodo-op)"
+	@echo "  make deploy          - Complete deployment (includes komodo-op)"
 	@echo "  make lint            - Run code quality checks"
 
 # =============================================================================
@@ -76,9 +75,6 @@ deploy: ## Complete deployment (all steps in sequence)
 	@echo "🚀 Starting complete Komodo deployment..."
 	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) site.yml
 
-deploy-with-op: ## Complete deployment with komodo-op secret management
-	@echo "🚀 Starting complete Komodo deployment with komodo-op..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) site.yml -e enable_komodo_op=true
 
 # =============================================================================
 # Secret Management & GitOps
@@ -109,6 +105,13 @@ periphery-upgrade: ## Upgrade Komodo Periphery nodes
 periphery-uninstall: ## Uninstall Komodo Periphery from nodes
 	@echo "🗑️ Uninstalling Komodo Periphery..."
 	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/04_komodo_periphery.yml -e komodo_action=uninstall
+
+upgrade: ## Upgrade Komodo Core and all Periphery nodes
+	@echo "⬆️ Upgrading Komodo Core..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/02_komodo_core.yml
+	@echo "⬆️ Upgrading Komodo Periphery nodes..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/04_komodo_periphery.yml -e komodo_action=update
+	@echo "✅ Komodo upgrade complete!"
 
 # =============================================================================
 # Maintenance Commands

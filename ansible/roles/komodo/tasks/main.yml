@@ -28,6 +28,7 @@
     env_files:
       - "{{ komodo_install_dir }}/compose.env"
     state: present
+    pull: always
     recreate: auto
 
 - name: Wait for MongoDB to be ready

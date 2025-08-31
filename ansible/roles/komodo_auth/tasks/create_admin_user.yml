@@ -1,7 +1,7 @@
 ---
 - name: Create temporary compose override to enable registration
   ansible.builtin.template:
-    src: "{{ playbook_dir }}/playbooks/templates/temp-compose-override.yml.j2"
+    src: "{{ playbook_dir }}/templates/temp-compose-override.yml.j2"
     dest: "{{ komodo_install_dir }}/docker-compose.override.yml"
     mode: "0644"
   delegate_to: "{{ groups['core'][0] }}"
@@ -10,7 +10,7 @@
   community.docker.docker_compose_v2:
     project_src: "{{ komodo_install_dir }}"
     project_name: "komodo-core"
-    restarted: true
+    state: restarted
     services:
       - core
   delegate_to: "{{ groups['core'][0] }}"
@@ -49,7 +49,7 @@
   community.docker.docker_compose_v2:
     project_src: "{{ komodo_install_dir }}"
     project_name: "komodo-core"
-    restarted: true
+    state: restarted
     services:
       - core
   delegate_to: "{{ groups['core'][0] }}"

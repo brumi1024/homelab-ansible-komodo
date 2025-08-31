@@ -15,6 +15,53 @@
     - name: Check Komodo Core health
       ansible.builtin.include_tasks: ../tasks/komodo_health_check.yml
 
+    - name: Check if GitHub account exists in Komodo
+      ansible.builtin.uri:
+        url: "{{ komodo_base_url }}/read"
+        method: POST
+        headers:
+          X-Api-Key: "{{ komodo_api_key }}"
+          X-Api-Secret: "{{ komodo_api_secret }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "ListGitProviderAccounts"
+          params: {}
+        status_code: [200]
+      register: github_accounts_list
+      tags: [github]
+
+    - name: Create GitHub account in Komodo
+      ansible.builtin.uri:
+        url: "{{ komodo_base_url }}/write"
+        method: POST
+        headers:
+          X-Api-Key: "{{ komodo_api_key }}"
+          X-Api-Secret: "{{ komodo_api_secret }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "CreateGitProviderAccount"
+          params:
+            account:
+              provider: "github.com"
+              username: "{{ lookup('community.general.onepassword', 'Komodo Github Provider Account', field='username', vault='Homelab Ansible') }}"
+              token: "{{ lookup('community.general.onepassword', 'Komodo Github Provider Account', field='token', vault='Homelab Ansible') }}"
+        status_code: [200, 201]
+      register: github_account_result
+      when: >
+        github_accounts_list.json |
+        selectattr('domain', 'equalto', 'github.com') |
+        selectattr('username', 'equalto', 
+          lookup('community.general.onepassword', 'Komodo Github Provider Account', field='username', vault='Homelab Ansible')) |
+        list | length == 0
+      tags: [github]
+
+    - name: Display GitHub account status
+      ansible.builtin.debug:
+        msg: "GitHub account {{ 'created' if github_account_result is not skipped else 'already exists' }}"
+      tags: [github]
+
     - name: Create komodo-op global variables
       ansible.builtin.include_tasks: ../tasks/komodo_variable_operations.yml
       vars:
