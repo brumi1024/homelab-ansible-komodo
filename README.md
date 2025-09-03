@@ -175,7 +175,7 @@ Applications are deployed via GitOps using resource syncs:
 make status
 
 # Manual health check
-curl -s http://your-komodo-host:9120/health
+curl -s http://your-komodo-host:9120
 ```
 
 ## Configuration
