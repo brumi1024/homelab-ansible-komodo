@@ -95,7 +95,7 @@ all:
               server_address: "https://{{ ansible_host }}:{{ komodo_periphery_port }}"
             
             sequoia-rpi4:
-              ansible_host: "sequoia-rpi4.{{ tailnet }}"
+              ansible_host: "sequoia-rpi-4.{{ tailnet }}"
               node_site: sequoia
               # Remote periphery with auto-generated passkey
               generate_server_passkey: true
