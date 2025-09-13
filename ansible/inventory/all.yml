@@ -46,9 +46,12 @@ all:
 
     # komodo-op Configuration (Secret Management)
     enable_komodo_op: true  # Set to true to enable komodo-op deployment
-    komodo_op_repo: "brumi1024/deploy-komodo-op"
-    komodo_op_branch: "main"
-    komodo_op_git_account: "brumi1024"
+    # NOTE: komodo-op repository is now defined in komodo-resource-syncs, not here
+
+    # Resource Syncs Configuration (GitOps)
+    komodo_resource_syncs_repo: "brumi1024/komodo-resource-syncs"
+    komodo_resource_syncs_branch: "main"
+    komodo_resource_syncs_git_account: "brumi1024"
 
     # Application Stacks Configuration
     app_stacks_repo: "brumi1024/homelab-komodo-stacks"
@@ -70,23 +73,41 @@ all:
       children:
         core:
           hosts:
-            main-server:
-              ansible_host: "docker-test1.{{ tailnet }}"
+            docker-home:
+              ansible_host: "docker-home.{{ tailnet }}"
               node_site: home
               komodo_role: core
 
         periphery:
           hosts:
-            home-server:
-              ansible_host: "docker-test1.{{ tailnet }}"
+            docker-home:
+              ansible_host: "docker-home.{{ tailnet }}"
               node_site: home
               # Same-host periphery configuration
               server_address: "https://host.docker.internal:{{ komodo_periphery_port }}"
 
-            sequoia-server:
-              ansible_host: "docker-test2.{{ tailnet }}"
+            docker-seq:
+              ansible_host: "docker-seq.{{ tailnet }}"
               node_site: sequoia
               # Remote periphery with auto-generated passkey
               generate_server_passkey: true
               # Use Tailnet hostname for reliable cross-site connectivity
               server_address: "https://{{ ansible_host }}:{{ komodo_periphery_port }}"
+            
+            sequoia-rpi4:
+              ansible_host: "sequoia-rpi4.{{ tailnet }}"
+              node_site: sequoia
+              # Remote periphery with auto-generated passkey
+              generate_server_passkey: true
+              # Use Tailnet hostname for reliable cross-site connectivity
+              server_address: "https://{{ ansible_host }}:{{ komodo_periphery_port }}"
+
+            homelab-vps:
+              ansible_host: "homelab-vps.{{ tailnet }}"
+              node_site: vps
+              # Remote periphery with auto-generated passkey
+              generate_server_passkey: true
+              # Use Tailnet hostname for reliable cross-site connectivity
+              server_address: "https://{{ ansible_host }}:{{ komodo_periphery_port }}"
+
+

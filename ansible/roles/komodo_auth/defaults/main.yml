@@ -7,3 +7,6 @@
 komodo_auth_max_retries: 5
 komodo_auth_retry_delay: 2
 komodo_auth_timeout: 30
+
+# API key recreation behavior
+komodo_auth_force_recreate: false  # Set to true to force API key recreation even if they exist in 1Password
