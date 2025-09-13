@@ -1,4 +1,17 @@
 ---
+# WARNING: POTENTIAL SILENT FAILURE SCENARIO
+# ========================================
+# This check prevents recreating API keys if they exist in 1Password.
+# However, on FRESH deployments, if stale API keys exist in 1Password from
+# a previous deployment, this will skip API key creation in the NEW Komodo instance,
+# causing silent failures in subsequent playbooks.
+#
+# SOLUTION: Before fresh deployments, ensure the "Komodo" item in 1Password
+# either doesn't exist or has the komodo_api_key field removed:
+#   op item delete "Komodo" --vault "Homelab Ansible"
+# OR
+#   op item edit "Komodo" --vault "Homelab Ansible" komodo_api_key=""
+
 - name: Check if API keys already exist in 1Password
   ansible.builtin.shell: op item get "Komodo" --vault "Homelab" --fields komodo_api_key 2>/dev/null || echo ""
   register: komodo_auth_existing_api_key
@@ -6,9 +19,20 @@
   changed_when: false
   no_log: true
 
-- name: Skip authentication setup if API keys already exist
+- name: Show API key recreation notice when forcing recreation
+  ansible.builtin.debug:
+    msg:
+      - "🔄 Force recreation enabled - will recreate API keys even though they exist in 1Password"
+      - "⚠️  This will overwrite existing API keys!"
+  when:
+    - komodo_auth_existing_api_key.stdout != ""
+    - komodo_auth_force_recreate | default(false) | bool
+
+- name: Skip authentication setup if API keys already exist (unless force recreate)
   ansible.builtin.meta: end_play
-  when: komodo_auth_existing_api_key.stdout != ""
+  when:
+    - komodo_auth_existing_api_key.stdout != ""
+    - not (komodo_auth_force_recreate | default(false) | bool)
 
 - name: Wait for Komodo Core to be ready
   ansible.builtin.uri:

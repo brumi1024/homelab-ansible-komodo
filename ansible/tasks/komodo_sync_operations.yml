@@ -23,10 +23,6 @@
           branch: "{{ sync_config.branch | default('main') }}"
           git_account: "{{ sync_config.git_account }}"
           resource_path: "{{ sync_config.resource_path }}"
-          on_clone: "{{ sync_config.on_clone | default('PullAndDeploy') }}"
-          on_pull: "{{ sync_config.on_pull | default('PullAndDeploy') }}"
-          auto_pull: "{{ sync_config.auto_pull | default(true) }}"
-          auto_deploy: "{{ sync_config.auto_deploy | default(true) }}"
     status_code: [200, 201, 409, 500] # 409 if already exists, 500 for unique name error
   register: resource_sync_result
   tags: [api, resource_sync]

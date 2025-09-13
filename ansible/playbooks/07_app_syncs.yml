@@ -1,9 +1,9 @@
 ---
-# Setup Komodo Resource Syncs for Application Stacks
-# This playbook creates resource syncs for application stacks GitOps workflow
-# Run this manually after komodo-op deployment to setup application deployments
+# Trigger Application Stacks Sync
+# This playbook triggers the komodo-app-stacks sync to ensure applications are synced after deployment
+# Run this after komodo-op deployment to sync application stacks from the repository
 
-- name: Setup Application Resource Syncs
+- name: Trigger Application Stacks Sync
   hosts: localhost
   gather_facts: false
   vars:
@@ -13,38 +13,50 @@
     komodo_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab Ansible') }}"
 
   tasks:
-    - name: Create application stacks resource sync
-      ansible.builtin.include_tasks: ../tasks/komodo_sync_operations.yml
-      vars:
-        sync_config:
-          name: "application-stacks-sync"
-          repo: "{{ app_stacks_repo | default('brumi1024/homelab-komodo-stacks') }}"
-          branch: "{{ app_stacks_branch | default('main') }}"
-          git_account: "{{ app_stacks_git_account | default('brumi1024') }}"
-          resource_path: "*/stack.toml"
-          on_clone: "PullAndDeploy"
-          on_pull: "PullAndDeploy"
-          auto_pull: true
-          auto_deploy: true
-        trigger_sync: false # Don't trigger initial sync, let it happen naturally
+    - name: Trigger application stacks sync
+      ansible.builtin.uri:
+        url: "{{ komodo_base_url }}/execute"
+        method: POST
+        headers:
+          X-Api-Key: "{{ komodo_api_key }}"
+          X-Api-Secret: "{{ komodo_api_secret }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "RunSync"
+          params:
+            sync: "komodo-app-stacks"
+        status_code: [200, 201]
+      register: app_sync_trigger_result
 
-    - name: Display app syncs setup summary
+    - name: Wait for application sync completion
+      ansible.builtin.uri:
+        url: "{{ komodo_base_url }}/read"
+        method: POST
+        headers:
+          X-Api-Key: "{{ komodo_api_key }}"
+          X-Api-Secret: "{{ komodo_api_secret }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "GetResourceSync"
+          params:
+            sync: "komodo-app-stacks"
+        status_code: 200
+      register: app_sync_status
+      until: app_sync_status.json.info.pending_error is none or app_sync_status.json.info.pending_error == ""
+      retries: 30
+      delay: 10
+      failed_when: app_sync_status.json.info.pending_error is not none and app_sync_status.json.info.pending_error != ""
+
+    - name: Display completion summary
       ansible.builtin.debug:
         msg: |-
-          🎉 Application Resource Syncs Setup Complete!
+          🎉 Application Stacks Sync Complete!
 
-          Resource Sync Details:
-          - Name: application-stacks-sync
-          - Status: {{ 'Created' if resource_sync_result.status in [200, 201] else 'Already exists' }}
-          - Repository: {{ app_stacks_repo | default('brumi1024/homelab-komodo-stacks') }}
-          - Resource Path: */stack.toml
-
-          Webhook URL:
-          {{ komodo_base_url }}/api/sync/application-stacks-sync/webhook
-
-          ✅ Ready for GitOps deployments!
+          ✅ Application stacks have been synced from the repository.
 
           Next Steps:
-          1. Push application stacks to {{ app_stacks_repo | default('brumi1024/homelab-komodo-stacks') }}
-          2. Configure GitHub webhook with the URL above
-          3. Applications will auto-deploy on push
+          1. Check the Komodo UI for available application stacks
+          2. Deploy applications manually as needed
+          3. Applications are configured for manual deployment for safety

@@ -94,8 +94,8 @@ The infrastructure uses a hub-and-spoke architecture where Komodo Core acts as t
 
 | Target | Description |
 |--------|-------------|
-| `make komodo-op` | Deploy komodo-op stack for 1Password secret sync |
-| `make app-syncs` | Setup application resource syncs for GitOps |
+| `make komodo-op` | Deploy resource syncs and komodo-op stack for 1Password secret sync |
+| `make app-syncs` | Verify and manage application resource syncs for GitOps |
 
 ### Upgrade & Management
 
@@ -161,12 +161,12 @@ make upgrade
 
 Applications are deployed via GitOps using resource syncs:
 
-1. **Setup resource syncs**:
+1. **Verify resource syncs** (optional - already created by `make komodo-op`):
    ```bash
    make app-syncs
    ```
 
-2. **Applications auto-deploy** from configured GitHub repositories when commits are pushed
+2. **Applications auto-pull** from configured GitHub repositories but require manual deployment for safety
 
 ### Health Monitoring
 
@@ -188,6 +188,7 @@ All configuration is centralized in `ansible/inventory/all.yml`:
 - Komodo Core and Periphery configuration
 - Authentication credentials (via 1Password lookups)
 - Git repository settings for komodo-op and app stacks
+- Resource sync repositories (required for GitOps)
 
 ### Key Configuration Sections
 
@@ -205,11 +206,16 @@ all:
     # Komodo Periphery Settings
     komodo_periphery_port: 8120
     
-    # Secret Management (optional)
-    komodo_op_repo: "brumi1024/deploy-komodo-op"
-    
-    # Application Stacks
-    komodo_app_stacks_repo: "brumi1024/homelab-komodo-stacks"
+    # Resource Syncs Configuration (GitOps) - REQUIRED
+    komodo_resource_syncs_repo: "brumi1024/komodo-resource-syncs"
+    komodo_resource_syncs_branch: "main"
+    komodo_resource_syncs_git_account: "brumi1024"
+
+    # Secret Management
+    enable_komodo_op: true  # Enable 1Password integration
+
+    # Individual sync repositories (defined in komodo-resource-syncs repo)
+    # app_stacks_repo: "brumi1024/komodo-app-stacks"  # Reference only
 ```
 
 ## Secret Management
@@ -231,14 +237,24 @@ See [1Password Setup Guide](docs/1PASSWORD_SETUP.md) for detailed configuration 
 
 ## GitOps Workflow
 
-1. **komodo-op Stack**: Deployed from `brumi1024/deploy-komodo-op`
+The infrastructure uses a centralized resource sync approach:
+
+1. **komodo-resource-syncs**: Meta-sync repository at `brumi1024/komodo-resource-syncs`
+   - Contains `syncs.toml` defining all resource syncs
+   - Automatically creates and manages individual syncs
+   - Single source of truth for GitOps configuration
+   - Repository URLs are defined in this repo, not in local ansible inventory
+
+2. **komodo-op-sync**: Infrastructure deployment (auto-deploy enabled)
+   - Source: `brumi1024/deploy-komodo-op`
    - Provides 1Password Connect server
    - Syncs secrets from 1Password vaults
    - Creates environment variables in Komodo
 
-2. **Application Stacks**: Deployed from `brumi1024/homelab-komodo-stacks`
-   - TOML-defined application stacks
-   - Automatic deployment on git commits
+3. **komodo-app-stacks**: Application deployments (manual deploy for safety)
+   - Source: `brumi1024/komodo-app-stacks`
+   - Auto-pulls latest definitions on changes
+   - Requires manual deployment approval
    - Uses secrets synchronized via komodo-op
 
 ## Troubleshooting
@@ -258,6 +274,25 @@ make status  # Check service health
 **1Password lookups failing**:
 ```bash
 op account list  # Verify 1Password CLI authentication
+```
+
+**API Key Silent Failures (Critical)**:
+
+If you're deploying to a fresh Komodo instance but have stale API keys in 1Password from a previous deployment, authentication setup will be silently skipped, causing failures in subsequent steps.
+
+**Symptoms**: Subsequent playbooks fail with authentication errors despite auth playbook appearing to succeed.
+
+**Solution**: Choose one of these approaches:
+
+```bash
+# Option 1: Use force recreate flag (recommended)
+make auth OPTS="-e komodo_auth_force_recreate=true"
+
+# Option 2: Delete entire Komodo item (will be recreated)
+op item delete "Komodo" --vault "Homelab Ansible"
+
+# Option 3: Remove just the API key field
+op item edit "Komodo" --vault "Homelab Ansible" komodo_api_key=""
 ```
 
 **Permission issues**:

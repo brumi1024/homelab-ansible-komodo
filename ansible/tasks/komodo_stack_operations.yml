@@ -86,8 +86,7 @@
     body_format: json
     body:
       type: "ListStacks"
-      params:
-        stack: "{{ found_stack | default(stack_name) }}"
+      params: {}
     status_code: 200
   register: stack_services
   until: stack_services.json[0].info.state is defined and stack_services.json[0].info.state == "running"

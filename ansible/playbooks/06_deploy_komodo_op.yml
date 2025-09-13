@@ -1,8 +1,8 @@
 ---
-# Deploy komodo-op Stack via Komodo Resource Sync
-# This playbook creates and triggers a resource sync for komodo-op deployment
+# Deploy Komodo Resource Syncs and komodo-op Stack
+# This playbook creates the meta-sync that manages both komodo-op and application stacks
 
-- name: Deploy komodo-op Stack
+- name: Deploy Komodo Resource Syncs
   hosts: localhost
   gather_facts: false
   vars:
@@ -12,43 +12,87 @@
     komodo_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab Ansible') }}"
 
   tasks:
-    - name: Create komodo-op resource sync
+    - name: Create komodo resource syncs meta-sync
       ansible.builtin.include_tasks: ../tasks/komodo_sync_operations.yml
       vars:
         sync_config:
-          name: "komodo-op-sync"
-          repo: "{{ komodo_op_repo | default('brumi1024/deploy-komodo-op') }}"
-          branch: "{{ komodo_op_branch | default('main') }}"
-          git_account: "{{ komodo_op_git_account | default('brumi1024') }}"
-          resource_path: "stack.toml"
-          on_clone: "PullAndDeploy"
-          on_pull: "PullAndDeploy"
-          auto_pull: true
-          auto_deploy: true
+          name: "komodo-resource-syncs"
+          repo: "{{ komodo_resource_syncs_repo }}"
+          branch: "{{ komodo_resource_syncs_branch }}"
+          git_account: "{{ komodo_resource_syncs_git_account }}"
+          resource_path: "syncs.toml"
         trigger_sync: true
         wait_for_sync_completion: true
         sync_wait_retries: 30
         sync_wait_delay: 10
 
-    - name: Display komodo-op sync result
-      ansible.builtin.debug:
-        var: resource_sync_result
+    - name: Wait for created syncs to appear
+      ansible.builtin.uri:
+        url: "{{ komodo_base_url }}/read"
+        method: POST
+        headers:
+          X-Api-Key: "{{ komodo_api_key }}"
+          X-Api-Secret: "{{ komodo_api_secret }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "ListResourceSyncs"
+          params: {}
+        status_code: 200
+      register: list_syncs_result
+      until: list_syncs_result.json | selectattr('name', 'equalto', 'komodo-op-sync') | list | length > 0
+      retries: 15
+      delay: 10
 
-    - name: Wait for komodo-op stack to appear and be running
+    - name: Trigger komodo-op-sync for immediate deployment
+      ansible.builtin.uri:
+        url: "{{ komodo_base_url }}/execute"
+        method: POST
+        headers:
+          X-Api-Key: "{{ komodo_api_key }}"
+          X-Api-Secret: "{{ komodo_api_secret }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "RunSync"
+          params:
+            sync: "komodo-op-sync"
+        status_code: [200, 201]
+      register: komodo_op_sync_trigger
+
+    - name: Wait for komodo-op sync completion
+      ansible.builtin.uri:
+        url: "{{ komodo_base_url }}/read"
+        method: POST
+        headers:
+          X-Api-Key: "{{ komodo_api_key }}"
+          X-Api-Secret: "{{ komodo_api_secret }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "GetResourceSync"
+          params:
+            sync: "komodo-op-sync"
+        status_code: 200
+      register: komodo_op_sync_status
+      until: komodo_op_sync_status.json.info.pending_error is none or komodo_op_sync_status.json.info.pending_error == ""
+      retries: 30
+      delay: 10
+      failed_when: komodo_op_sync_status.json.info.pending_error is not none and komodo_op_sync_status.json.info.pending_error != ""
+
+    - name: Wait for komodo-op stack to appear
       ansible.builtin.include_tasks: ../tasks/komodo_stack_operations.yml
       vars:
         stack_name_pattern: '.*komodo.*op.*'
         wait_for_stack_appear: true
-        wait_for_running: true
+        wait_for_running: false
         stack_appear_retries: 30
         stack_appear_delay: 10
-        stack_running_retries: 60
-        stack_running_delay: 10
 
     # After the stack operations, we need to set the found stack for display
     - name: Set komodo-op stack details for completion message
       ansible.builtin.set_fact:
-        komodo_op_stack: "{{ found_stack }}"
+        komodo_op_stack: "{{ found_stack.name }}"
 
     - name: Deploy komodo-op stack
       ansible.builtin.uri:
@@ -71,6 +115,15 @@
       ansible.builtin.pause:
         seconds: 10
 
+    - name: Wait for komodo-op stack to be running
+      ansible.builtin.include_tasks: ../tasks/komodo_stack_operations.yml
+      vars:
+        stack_name_pattern: '.*komodo.*op.*'
+        wait_for_stack_appear: false
+        wait_for_running: true
+        stack_running_retries: 60
+        stack_running_delay: 10
+
     - name: Test 1Password Connect accessibility
       ansible.builtin.uri:
         url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:8080/v1/heartbeat"
@@ -84,18 +137,24 @@
     - name: Display deployment summary
       ansible.builtin.debug:
         msg: |-
-          🎉 komodo-op Stack Deployment Complete!
+          🎉 Komodo Resource Syncs & komodo-op Deployment Complete!
 
-          Stack Details:
+          Resource Syncs Created:
+          - komodo-resource-syncs (meta-sync): {{ komodo_resource_syncs_repo }}
+          - komodo-op-sync: Infrastructure stack sync
+          - komodo-app-stacks: Application stacks sync
+
+          komodo-op Stack:
           - Name: {{ komodo_op_stack }}
-          - Repository: {{ komodo_op_repo | default('brumi1024/deploy-komodo-op') }}
+          - Status: {{ 'Deployed' if komodo_op_stack is defined else 'Deploying...' }}
 
           1Password Connect:
           - Status: {{ 'Healthy' if op_connect_health.status == 200 else 'Starting up...' }}
           - URL: http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:8080
 
-          ✅ Secret management is now active!
+          ✅ Secret management and GitOps syncs are now active!
 
           Next Steps:
           1. Verify secrets are syncing in Komodo global variables
-          2. Run 'make app-syncs' to setup application deployments
+          2. Applications can now be deployed via komodo-app-stacks repository
+          3. Use 'make app-syncs' to verify or manually trigger application syncs
