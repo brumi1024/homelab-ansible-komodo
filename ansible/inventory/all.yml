@@ -53,10 +53,6 @@ all:
     komodo_resource_syncs_branch: "main"
     komodo_resource_syncs_git_account: "brumi1024"
 
-    # Application Stacks Configuration
-    app_stacks_repo: "brumi1024/homelab-komodo-stacks"
-    app_stacks_branch: "main"
-    app_stacks_git_account: "brumi1024"
 
   children:
     # Control machine (not managed by infrastructure playbooks)
@@ -73,15 +69,15 @@ all:
       children:
         core:
           hosts:
-            docker-home:
-              ansible_host: "docker-home.{{ tailnet }}"
+            docker:
+              ansible_host: "docker.{{ tailnet }}"
               node_site: home
               komodo_role: core
 
         periphery:
           hosts:
-            docker-home:
-              ansible_host: "docker-home.{{ tailnet }}"
+            docker:
+              ansible_host: "docker.{{ tailnet }}"
               node_site: home
               # Same-host periphery configuration
               server_address: "https://host.docker.internal:{{ komodo_periphery_port }}"
@@ -94,7 +90,7 @@ all:
               # Use Tailnet hostname for reliable cross-site connectivity
               server_address: "https://{{ ansible_host }}:{{ komodo_periphery_port }}"
             
-            sequoia-rpi4:
+            sequoia-rpi-4:
               ansible_host: "sequoia-rpi-4.{{ tailnet }}"
               node_site: sequoia
               # Remote periphery with auto-generated passkey
