@@ -21,6 +21,8 @@
           branch: "{{ komodo_resource_syncs_branch }}"
           git_account: "{{ komodo_resource_syncs_git_account }}"
           resource_path: "syncs.toml"
+          managed: true
+          match_tags: ["sync"]
         trigger_sync: true
         wait_for_sync_completion: true
         sync_wait_retries: 30

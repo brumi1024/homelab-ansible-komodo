@@ -23,6 +23,8 @@
           branch: "{{ sync_config.branch | default('main') }}"
           git_account: "{{ sync_config.git_account }}"
           resource_path: "{{ sync_config.resource_path }}"
+          managed: "{{ sync_config.managed }}"
+          match_tags: "{{ sync_config.match_tags }}"
     status_code: [200, 201, 409, 500] # 409 if already exists, 500 for unique name error
   register: resource_sync_result
   tags: [api, resource_sync]
