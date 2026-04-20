@@ -20,13 +20,14 @@ services:
       - mongo-data:/data/db
       - mongo-config:/data/configdb
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${KOMODO_DB_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${KOMODO_DB_PASSWORD}
-  
+      MONGO_INITDB_ROOT_USERNAME: ${KOMODO_DATABASE_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${KOMODO_DATABASE_PASSWORD}
+
   core:
-    image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
+    image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-2}
     labels:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
+    init: true
     restart: unless-stopped
     depends_on:
       - mongo
@@ -35,24 +36,23 @@ services:
     env_file: ./compose.env
     environment:
       KOMODO_DATABASE_ADDRESS: mongo:27017
-      KOMODO_DATABASE_USERNAME: ${KOMODO_DB_USERNAME}
-      KOMODO_DATABASE_PASSWORD: ${KOMODO_DB_PASSWORD}
     volumes:
+      ## Core/Periphery PKI key material (core.pub / periphery.pub)
+      - keys:/config/keys
+      ## Dated database backups - https://komo.do/docs/setup/backup
+      - ${COMPOSE_KOMODO_BACKUPS_PATH}:/backups
       ## Store sync files on server
       - ${PERIPHERY_ROOT_DIRECTORY}/syncs:/syncs
       ## Optionally mount a custom core.config.toml
       # - /path/to/core.config.toml:/config/config.toml
-    ## Configure DNS to resolve Tailscale hostnames
+    ## Configure DNS to resolve Tailscale hostnames (needed for git/OIDC/resource-sync
+    ## endpoints that live on the Tailnet).
     dns:
       - 100.100.100.100  # Tailscale DNS
-    ## Allows for systemd Periphery connection at
-    ## "http://host.docker.internal:{{ komodo_periphery_port }}"
-    extra_hosts:
-      - host.docker.internal:host-gateway
 
 volumes:
   # Mongo
   mongo-data:
   mongo-config:
-  # Core
-  repo-cache:
+  # Core / Periphery PKI keys
+  keys:

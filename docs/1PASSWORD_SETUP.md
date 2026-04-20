@@ -23,7 +23,6 @@ This document lists all required 1Password items and fields for the homelab-komo
 | `komodo_api_secret` | Password | API secret for Komodo authentication | `secret_67890...` |
 | `komodo_db_username` | Text | MongoDB database username | `komodo` |
 | `komodo_db_password` | Password | MongoDB database password | `db-password` |
-| `komodo_passkey` | Password | Core authentication passkey | `passkey-secret` |
 | `komodo_host` | Text | External hostname for Komodo | `komodo.yourdomain.com` |
 | `komodo_webhook_secret` | Password | Webhook security secret | `webhook-secret` |
 | `komodo_jwt_secret` | Password | JWT token signing secret | `jwt-secret` |

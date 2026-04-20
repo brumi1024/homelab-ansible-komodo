@@ -10,6 +10,9 @@
 # Ansible configuration
 INVENTORY := inventory/all.yml
 ANSIBLE_OPTS := -i $(INVENTORY)
+# Override from CLI for per-run extras, e.g.
+#   make periphery-upgrade EXTRA_VARS="-e komodo_onboarding_key=O-..."
+EXTRA_VARS :=
 
 # Default target
 help: ## Show this help message
@@ -34,7 +37,7 @@ setup: ## Install Ansible dependencies
 
 check: ## Check connectivity to all hosts
 	@echo "🔍 Checking connectivity..."
-	@cd ansible && ansible all $(ANSIBLE_OPTS) -m ping
+	@cd ansible && ansible all $(ANSIBLE_OPTS) $(EXTRA_VARS) -m ping
 
 # =============================================================================
 # Code Quality
@@ -53,19 +56,19 @@ lint: ## Run ansible-lint and yamllint
 
 docker: ## Install Docker on all nodes
 	@echo "🐳 Installing Docker on all nodes..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/01_docker.yml
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/01_docker.yml
 
 core: ## Deploy Komodo Core (requires Docker)
 	@echo "🦎 Deploying Komodo Core..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/02_komodo_core.yml
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/02_komodo_core.yml
 
 auth: ## Initialize Komodo authentication (requires Core)
 	@echo "🔑 Initializing Komodo authentication..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/03_komodo_auth.yml
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/03_komodo_auth.yml
 
 periphery: ## Deploy Komodo Periphery nodes (requires auth)
 	@echo "🔗 Deploying Komodo Periphery..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/04_komodo_periphery.yml
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/04_komodo_periphery.yml
 
 # =============================================================================
 # Complete Deployment
@@ -73,7 +76,7 @@ periphery: ## Deploy Komodo Periphery nodes (requires auth)
 
 deploy: ## Complete deployment (all steps in sequence)
 	@echo "🚀 Starting complete Komodo deployment..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) site.yml
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) site.yml
 
 
 # =============================================================================
@@ -82,13 +85,13 @@ deploy: ## Complete deployment (all steps in sequence)
 
 komodo-op: ## Deploy komodo-op for secret management (manual)
 	@echo "🔐 Bootstrapping komodo-op variables..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/05_bootstrap_komodo_op.yml
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/05_bootstrap_komodo_op.yml
 	@echo "🔐 Deploying komodo-op stack..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/06_deploy_komodo_op.yml
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/06_deploy_komodo_op.yml
 
 app-syncs: ## Setup application resource syncs (run after komodo-op)
 	@echo "🔄 Setting up application resource syncs..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/07_app_syncs.yml
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/07_app_syncs.yml
 
 # =============================================================================
 # Upgrade & Management Commands
@@ -96,21 +99,21 @@ app-syncs: ## Setup application resource syncs (run after komodo-op)
 
 core-upgrade: ## Upgrade Komodo Core (pulls latest images)
 	@echo "⬆️ Upgrading Komodo Core..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/02_komodo_core.yml --tags upgrade
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/02_komodo_core.yml --tags upgrade
 
 periphery-upgrade: ## Upgrade Komodo Periphery nodes
 	@echo "⬆️ Upgrading Komodo Periphery nodes..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/04_komodo_periphery.yml -e komodo_action=update
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/04_komodo_periphery.yml -e komodo_action=update
 
 periphery-uninstall: ## Uninstall Komodo Periphery from nodes
 	@echo "🗑️ Uninstalling Komodo Periphery..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/04_komodo_periphery.yml -e komodo_action=uninstall
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/04_komodo_periphery.yml -e komodo_action=uninstall
 
 upgrade: ## Upgrade Komodo Core and all Periphery nodes
 	@echo "⬆️ Upgrading Komodo Core..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/02_komodo_core.yml
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/02_komodo_core.yml
 	@echo "⬆️ Upgrading Komodo Periphery nodes..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/04_komodo_periphery.yml -e komodo_action=update
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/04_komodo_periphery.yml -e komodo_action=update
 	@echo "✅ Komodo upgrade complete!"
 
 # =============================================================================
@@ -119,7 +122,7 @@ upgrade: ## Upgrade Komodo Core and all Periphery nodes
 
 status: ## Check status of Komodo services
 	@echo "🔍 Checking Komodo service status..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/status.yml
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/status.yml
 
 clean: ## Clean up temporary files
 	@echo "🧹 Cleaning up..."
@@ -140,9 +143,9 @@ run: ## Run specific playbook (requires PLAYBOOK variable)
 		exit 1; \
 	fi
 	@echo "🎯 Running $(PLAYBOOK)..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) playbooks/$(PLAYBOOK) $(OPTS)
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/$(PLAYBOOK) $(OPTS)
 
 # Run in check mode (dry run)
 check-deploy: ## Dry run deployment (check mode)
 	@echo "🔍 Dry run - checking what would change..."
-	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) site.yml --check --diff
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) site.yml --check --diff

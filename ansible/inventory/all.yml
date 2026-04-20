@@ -16,24 +16,20 @@ all:
     komodo_mongo_port: 27017
     komodo_mongo_cache_size_gb: 2
 
-    # Komodo Periphery Settings
+    # Komodo Periphery Settings (bpbradley.komodo v2.x, outbound connection mode)
     komodo_periphery_port: 8120
-    komodo_periphery_version: "latest"
+    # Track whatever version Core reports on its /version endpoint. Keeps Core/Periphery coupled
+    # and makes `make periphery-upgrade` a no-argument way to re-align after a Core bump.
+    komodo_periphery_version: "core"
     komodo_user: "komodo"
     komodo_group: "komodo"
-    komodo_bind_ip: "0.0.0.0"
-    komodo_bind_port: "{{ komodo_periphery_port }}"
-    komodo_allowed_ips: []
-    komodo_secrets: []
-    komodo_periphery_root_directory: "/etc/komodo"
-    enable_server_management: true
+    komodo_root_directory: "/etc/komodo"
 
     # Computed URLs
-    komodo_core_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
-    komodo_periphery_url_pattern: "https://{host}:{{ komodo_periphery_port }}"
+    komodo_core_http_address: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
 
     # Authentication Settings
-    komodo_auth_base_url: "{{ komodo_core_url }}"
+    komodo_auth_base_url: "{{ komodo_core_http_address }}"
     komodo_auth_admin_username: "{{ lookup('community.general.onepassword', 'Komodo', field='username', vault='Homelab Ansible') }}"
     komodo_auth_admin_password: "{{ lookup('community.general.onepassword', 'Komodo', field='password', vault='Homelab Ansible') }}"
     komodo_auth_service_user: "komodo-automation"
@@ -75,35 +71,29 @@ all:
               komodo_role: core
 
         periphery:
+          vars:
+            # Periphery dials Core over the Tailnet. ws:// is safe here because Tailscale
+            # already encrypts + authenticates the transport; upgrade to wss:// once Core
+            # sits behind a TLS terminator (Caddy, Tailscale-Serve, etc).
+            komodo_core_address: "ws://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
+            # Explicit; role auto-coerces this when komodo_core_address is set, but stating
+            # it makes the topology obvious.
+            komodo_server_enabled: false
           hosts:
             docker:
               ansible_host: "docker.{{ tailnet }}"
               node_site: home
-              # Same-host periphery configuration
-              server_address: "https://host.docker.internal:{{ komodo_periphery_port }}"
 
             docker-seq:
               ansible_host: "docker-seq.{{ tailnet }}"
               node_site: sequoia
-              # Remote periphery with auto-generated passkey
-              generate_server_passkey: true
-              # Use Tailnet hostname for reliable cross-site connectivity
-              server_address: "https://{{ ansible_host }}:{{ komodo_periphery_port }}"
-            
+
             sequoia-rpi-4:
               ansible_host: "sequoia-rpi-4.{{ tailnet }}"
               node_site: sequoia
-              # Remote periphery with auto-generated passkey
-              generate_server_passkey: true
-              # Use Tailnet hostname for reliable cross-site connectivity
-              server_address: "https://{{ ansible_host }}:{{ komodo_periphery_port }}"
 
             homelab-vps:
               ansible_host: "homelab-vps.{{ tailnet }}"
               node_site: vps
-              # Remote periphery with auto-generated passkey
-              generate_server_passkey: true
-              # Use Tailnet hostname for reliable cross-site connectivity
-              server_address: "https://{{ ansible_host }}:{{ komodo_periphery_port }}"
 
 

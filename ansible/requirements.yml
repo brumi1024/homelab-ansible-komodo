@@ -10,6 +10,7 @@ roles:
 
   # Komodo periphery deployment with systemd
   - name: bpbradley.komodo
+    version: "v2.1"
 
 # Required collections
 collections:
