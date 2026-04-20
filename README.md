@@ -103,7 +103,7 @@ The infrastructure uses a hub-and-spoke architecture where Komodo Core acts as t
 |--------|-------------|
 | `make upgrade` | Upgrade both Core and all Periphery nodes |
 | `make core-upgrade` | Upgrade Komodo Core (pulls latest images) |
-| `make periphery-upgrade` | Update all Periphery nodes to latest version |
+| `make periphery-upgrade` | Realign Periphery binaries to the version Komodo Core currently reports |
 | `make periphery-uninstall` | Remove Komodo Periphery from all nodes |
 
 ### Maintenance
