@@ -25,8 +25,34 @@
           resource_path: "{{ sync_config.resource_path }}"
           managed: "{{ sync_config.managed }}"
           match_tags: "{{ sync_config.match_tags }}"
+          delete: "{{ sync_config.delete | default(false) }}"
     status_code: [200, 201, 409, 500] # 409 if already exists, 500 for unique name error
   register: resource_sync_result
+  tags: [api, resource_sync]
+
+- name: Update Komodo resource sync config
+  ansible.builtin.uri:
+    url: "{{ komodo_base_url }}/write"
+    method: POST
+    headers:
+      X-Api-Key: "{{ komodo_api_key }}"
+      X-Api-Secret: "{{ komodo_api_secret }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      type: "UpdateResourceSync"
+      params:
+        id: "{{ resource_sync_result.json.id | default(sync_config.name) }}"
+        config:
+          repo: "{{ sync_config.repo }}"
+          branch: "{{ sync_config.branch | default('main') }}"
+          git_account: "{{ sync_config.git_account }}"
+          resource_path: "{{ sync_config.resource_path }}"
+          managed: "{{ sync_config.managed }}"
+          match_tags: "{{ sync_config.match_tags }}"
+          delete: "{{ sync_config.delete | default(false) }}"
+    status_code: [200, 201]
+  register: resource_sync_update_result
   tags: [api, resource_sync]
 
 - name: Create Komodo sync webhook
@@ -41,11 +67,10 @@
     body:
       type: "CreateSyncWebhook"
       params:
-        sync: "{{ resource_sync_result.json.id | default(sync_config.name) }}"
+        sync: "{{ resource_sync_update_result.json.id | default(resource_sync_result.json.id) | default(sync_config.name) }}"
         action: "Sync"
     status_code: [200, 201, 409, 500] # 409 if already exists, 500 for unique name error
   register: webhook_result
-  when: resource_sync_result.status != 409
   tags: [api, webhook]
 
 - name: Trigger resource sync execution
@@ -60,7 +85,7 @@
     body:
       type: "RunSync"
       params:
-        sync: "{{ resource_sync_result.json.id | default(sync_config.name) }}"
+        sync: "{{ resource_sync_update_result.json.id | default(resource_sync_result.json.id) | default(sync_config.name) }}"
     status_code: [200, 201]
   register: sync_trigger_result
   when: trigger_sync | default(false)
@@ -78,7 +103,7 @@
     body:
       type: "GetResourceSync"
       params:
-        sync: "{{ resource_sync_result.json.id | default(sync_config.name) }}"
+        sync: "{{ resource_sync_update_result.json.id | default(resource_sync_result.json.id) | default(sync_config.name) }}"
     status_code: 200
   register: sync_status
   until: sync_status.json.info.pending_error is none or sync_status.json.info.pending_error == ""

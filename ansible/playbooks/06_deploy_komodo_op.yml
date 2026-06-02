@@ -22,6 +22,7 @@
           git_account: "{{ komodo_resource_syncs_git_account }}"
           resource_path: "syncs.toml"
           managed: true
+          delete: true
           match_tags: ["sync"]
         trigger_sync: true
         wait_for_sync_completion: true
