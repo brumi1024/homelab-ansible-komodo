@@ -20,6 +20,10 @@ id_rsa*
 1password-credentials.json
 op-credentials.json
 
+# Operational notes that record live topology, tailnet addresses, or
+# service exposure. These stay on the operator machine.
+private/
+
 # OS generated files
 .DS_Store
 Thumbs.db
