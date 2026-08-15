@@ -14,10 +14,6 @@ This repository deploys a distributed container orchestration platform with:
 
 The infrastructure uses a hub-and-spoke architecture where Komodo Core acts as the central controller, coordinating deployments across multiple Periphery nodes connected via Tailscale VPN.
 
-The target architecture keeps Core on `homelab-vps`, reachable publicly through Caddy and locally on loopback.
-VPS services share private Docker networks, while cross-host traffic uses full Tailscale MagicDNS names.
-See [Service Reliability And Recovery](docs/service-recovery.md) before applying the control-plane or Authentik migrations.
-
 ## Prerequisites
 
 - **Ansible** 2.9+ with community.general collection
