@@ -65,8 +65,7 @@ Security is not complete until recovery and alerting are proven:
 - run one PBS restore validation for a non-critical home guest;
 - run one PBS restore validation for a non-critical Sequoia guest;
 - trigger a real Uptime Kuma alert and confirm Ntfy delivery;
-- document the restore target, timestamp, and outcome in
-  `docs/homelab-findings.md` or a dated restore note.
+- document the restore target, timestamp, and outcome in a dated restore note.
 
 ## Known Intentional Tradeoffs
 
