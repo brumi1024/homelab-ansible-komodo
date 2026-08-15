@@ -30,6 +30,7 @@ echo -e "${GREEN}✅ Ansible setup complete!${NC}"
 echo
 echo -e "${BLUE}External roles installed:${NC}"
 echo "  • geerlingguy.docker (Docker installation)"
+echo "  • geerlingguy.security (SSH, fail2ban, unattended upgrades)"
 echo "  • bpbradley.komodo (Komodo periphery management)"
 echo
 echo -e "${BLUE}Collections installed:${NC}"

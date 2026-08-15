@@ -14,14 +14,25 @@ services:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
     command: --quiet --wiredTigerCacheSizeGB {{ komodo_mongo_cache_size_gb }}
     restart: unless-stopped
-    ports:
-      - {{ komodo_mongo_port }}:27017
     volumes:
       - mongo-data:/data/db
       - mongo-config:/data/configdb
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${KOMODO_DATABASE_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${KOMODO_DATABASE_PASSWORD}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet --host 127.0.0.1
+          --username "$${MONGO_INITDB_ROOT_USERNAME}"
+          --password "$${MONGO_INITDB_ROOT_PASSWORD}"
+          --authenticationDatabase admin
+          --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 1)'
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
 
   core:
     image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-2}
@@ -30,12 +41,18 @@ services:
     init: true
     restart: unless-stopped
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     ports:
-      - {{ komodo_port }}:9120
+      - {{ komodo_core_bind_address }}:{{ komodo_port }}:9120
     env_file: ./compose.env
     environment:
       KOMODO_DATABASE_ADDRESS: mongo:27017
+    networks:
+      default:
+      vps-ingress:
+        aliases:
+          - {{ komodo_core_network_alias }}
     volumes:
       ## Core/Periphery PKI key material (core.pub / periphery.pub)
       - keys:/config/keys
@@ -45,14 +62,14 @@ services:
       - ${PERIPHERY_ROOT_DIRECTORY}/syncs:/syncs
       ## Optionally mount a custom core.config.toml
       # - /path/to/core.config.toml:/config/config.toml
-    ## Configure DNS to resolve Tailscale hostnames (needed for git/OIDC/resource-sync
-    ## endpoints that live on the Tailnet).
-    dns:
-      - 100.100.100.100  # Tailscale DNS
-
 volumes:
   # Mongo
   mongo-data:
   mongo-config:
   # Core / Periphery PKI keys
   keys:
+
+networks:
+  vps-ingress:
+    external: true
+    name: vps-ingress

@@ -5,7 +5,8 @@
         docker core auth periphery deploy \
         komodo-op app-syncs \
         core-upgrade periphery-upgrade periphery-uninstall \
-        status clean
+        status recovery-check reliability-baseline \
+        security-check security-baseline docker-dns-baseline clean
 
 # Ansible configuration
 INVENTORY := inventory/all.yml
@@ -47,7 +48,7 @@ lint: ## Run ansible-lint and yamllint
 	@echo "🔍 Running ansible-lint..."
 	@cd ansible && ansible-lint
 	@echo "🔍 Running yamllint..."
-	@yamllint ansible/ .github/workflows/
+	@yamllint -c ansible/.yamllint ansible/ .github/workflows/
 	@echo "✅ Linting complete!"
 
 # =============================================================================
@@ -123,6 +124,26 @@ upgrade: ## Upgrade Komodo Core and all Periphery nodes
 status: ## Check status of Komodo services
 	@echo "🔍 Checking Komodo service status..."
 	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/status.yml
+
+recovery-check: ## Verify hosts are restart-clean without changing them
+	@echo "Checking restart and recovery prerequisites..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/recovery_check.yml
+
+reliability-baseline: ## Enable restart persistence, swap, and shared networks
+	@echo "Applying homelab reliability baseline..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/reliability_baseline.yml
+
+security-check: ## Check homelab security baseline without changing hosts
+	@echo "🔐 Checking homelab security baseline..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/security_check.yml
+
+security-baseline: ## Apply pragmatic Linux host security baseline
+	@echo "🔐 Applying homelab security baseline..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/security_baseline.yml
+
+docker-dns-baseline: ## Pin Docker daemon DNS to the Tailnet resolver
+	@echo "🐳 Pinning Docker daemon DNS to Tailnet resolver..."
+	@cd ansible && ansible-playbook $(ANSIBLE_OPTS) $(EXTRA_VARS) playbooks/docker_dns_baseline.yml
 
 clean: ## Clean up temporary files
 	@echo "🧹 Cleaning up..."

@@ -8,6 +8,10 @@ roles:
   - name: geerlingguy.docker
     version: "7.0.1"
 
+  # Pragmatic SSH, fail2ban, and unattended-upgrades baseline
+  - name: geerlingguy.security
+    version: "3.0.2"
+
   # Komodo periphery deployment with systemd
   - name: bpbradley.komodo
     version: "v2.1"

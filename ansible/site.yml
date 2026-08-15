@@ -38,7 +38,7 @@
         msg:
           - "🎉 Komodo Infrastructure Deployment Complete!"
           - ""
-          - "🖥️  Komodo Core: http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
+          - "🖥️  Komodo Core: {{ komodo_core_http_address }}"
           - "🔗 Periphery nodes: {{ groups['periphery'] | length }} deployed"
           - ""
           - "✅ All services are running and ready for deployments!"
@@ -52,7 +52,7 @@
         msg:
           - "🎉 Komodo Infrastructure Deployment Complete!"
           - ""
-          - "🖥️  Komodo Core: http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
+          - "🖥️  Komodo Core: {{ komodo_core_http_address }}"
           - "🔗 Periphery nodes: {{ groups['periphery'] | length }} deployed"
           - "🔐 komodo-op: Secret management enabled with 1Password Connect"
           - ""
