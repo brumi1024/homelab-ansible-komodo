@@ -14,6 +14,10 @@ This repository deploys a distributed container orchestration platform with:
 
 The infrastructure uses a hub-and-spoke architecture where Komodo Core acts as the central controller, coordinating deployments across multiple Periphery nodes connected via Tailscale VPN.
 
+The target architecture keeps Core on `homelab-vps`, reachable publicly through Caddy and locally on loopback.
+VPS services share private Docker networks, while cross-host traffic uses full Tailscale MagicDNS names.
+See [Service Reliability And Recovery](docs/service-recovery.md) before applying the control-plane or Authentik migrations.
+
 ## Prerequisites
 
 - **Ansible** 2.9+ with community.general collection
@@ -111,7 +115,12 @@ The infrastructure uses a hub-and-spoke architecture where Komodo Core acts as t
 | Target | Description |
 |--------|-------------|
 | `make status` | Check health status of all Komodo services |
+| `make recovery-check` | Verify restart and recovery prerequisites without changing hosts |
+| `make reliability-baseline` | Enable restart persistence, VPS swap, and shared networks |
 | `make clean` | Clean up temporary files and caches |
+
+The Core migration is a one-off cutover rather than routine maintenance, so it has no Make target.
+See [Service Reliability And Recovery](docs/service-recovery.md) for how to run it.
 
 ### Advanced Options
 
@@ -128,10 +137,14 @@ The infrastructure uses a hub-and-spoke architecture where Komodo Core acts as t
    periphery:
      hosts:
        existing-node:
-         ansible_host: 100.x.x.x
+         ansible_host: existing-node
        new-node:                    # Add new server
-         ansible_host: 100.x.x.x    # Tailscale IP
+         ansible_host: new-node     # Tailscale MagicDNS name
    ```
+
+   Use MagicDNS names rather than Tailscale addresses.
+   An address is only routable through `tailscaled`, which also serves MagicDNS, so a literal address survives no outage that the name does not.
+   Names also keep SSH host-key trust intact, which address-based access breaks.
 
 2. **Deploy to new node**:
    ```bash
@@ -197,11 +210,11 @@ all:
   vars:
     # Network & Connection
     ansible_user: root
-    tailnet: "{{ 1password_lookup }}"
+    homelab_tailnet: "{{ 1password_lookup }}"
     
     # Komodo Core Settings
     komodo_port: 9120
-    komodo_mongo_port: 27017
+    komodo_core_bind_address: "127.0.0.1"
     
     # Komodo Periphery Settings
     komodo_periphery_port: 8120

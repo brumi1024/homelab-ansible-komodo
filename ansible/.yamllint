@@ -1,6 +1,12 @@
 ---
 extends: default
 
+ignore: |
+  ansible/playbooks/templates/homelab-input-firewall.service.j2
+  ansible/playbooks/templates/homelab-input-firewall.sh.j2
+  ansible/playbooks/templates/homelab-docker-proxy-firewall.service.j2
+  ansible/playbooks/templates/homelab-docker-proxy-firewall.sh.j2
+
 rules:
   line-length:
     max: 160

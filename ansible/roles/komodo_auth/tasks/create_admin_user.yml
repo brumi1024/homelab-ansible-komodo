@@ -9,7 +9,7 @@
 - name: Restart Komodo Core with registration enabled
   community.docker.docker_compose_v2:
     project_src: "{{ komodo_install_dir }}"
-    project_name: "komodo-core"
+    project_name: "{{ komodo_compose_project_name }}"
     state: restarted
     services:
       - core
@@ -48,7 +48,7 @@
 - name: Restart Komodo Core to re-enable registration protection
   community.docker.docker_compose_v2:
     project_src: "{{ komodo_install_dir }}"
-    project_name: "komodo-core"
+    project_name: "{{ komodo_compose_project_name }}"
     state: restarted
     services:
       - core

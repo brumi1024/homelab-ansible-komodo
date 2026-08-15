@@ -24,6 +24,7 @@ mock_modules:
 # Mock roles to prevent missing role errors
 mock_roles:
   - geerlingguy.docker
+  - geerlingguy.security
   - bpbradley.komodo
 
 # Specific rules to skip (use sparingly)

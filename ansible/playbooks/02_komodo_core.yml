@@ -32,6 +32,6 @@
       ansible.builtin.debug:
         msg:
           - "🦎 Komodo Core deployment complete!"
-          - "Web UI available at: http://{{ ansible_host }}:{{ komodo_port }}"
+          - "Web UI available at: {{ komodo_core_http_address }}"
           - ""
           - "✅ Ready for authentication setup!"

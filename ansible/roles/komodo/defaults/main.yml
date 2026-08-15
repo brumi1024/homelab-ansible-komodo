@@ -4,7 +4,8 @@
 # Only role-internal behavior settings here
 
 # Role behavior defaults
-komodo_compose_service_name: "komodo-core"
+komodo_compose_project_name: "komodo-core"
+komodo_core_network_alias: "komodo-core"
 komodo_systemd_service_enabled: true
 komodo_health_check_retries: 5
 komodo_health_check_delay: 10
