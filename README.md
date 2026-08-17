@@ -1,4 +1,4 @@
-# Homelab Komodo Infrastructure
+# Homelab Infrastructure
 
 Infrastructure-as-code solution for deploying and managing Komodo-based homelab infrastructure using Ansible. This project automates the complete deployment of Komodo Core, Komodo Periphery nodes, secret management via 1Password Connect, and GitOps-driven application stacks.
 

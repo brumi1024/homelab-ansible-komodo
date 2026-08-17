@@ -1,6 +1,6 @@
 # 1Password Setup Guide
 
-This document lists all required 1Password items and fields for the homelab-komodo infrastructure deployment. All items must be created in the **"Homelab Ansible"** vault.
+This document lists all required 1Password items and fields for this infrastructure deployment. All items must be created in the **"Homelab Ansible"** vault.
 
 ## Required Vault
 
