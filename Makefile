@@ -9,7 +9,8 @@
         security-check security-baseline docker-dns-baseline clean
 
 # Ansible configuration
-INVENTORY := inventory/all.yml
+ANSIBLE_DIR := ansible
+INVENTORY := inventory/hosts.yml
 ANSIBLE_OPTS := -i $(INVENTORY)
 # Override from CLI for per-run extras, e.g.
 #   make periphery-upgrade EXTRA_VARS="-e komodo_onboarding_key=O-..."
@@ -31,9 +32,13 @@ help: ## Show this help message
 # Setup and Dependencies
 # =============================================================================
 
-setup: ## Install Ansible dependencies
+setup: ## Install Ansible dependencies and create inventory/hosts.yml if missing
 	@echo "📦 Installing Ansible dependencies..."
 	@./scripts/setup-ansible.sh
+	@if [ ! -f $(ANSIBLE_DIR)/$(INVENTORY) ]; then \
+		cp $(ANSIBLE_DIR)/inventory/hosts.example.yml $(ANSIBLE_DIR)/$(INVENTORY); \
+		echo "📝 Created $(ANSIBLE_DIR)/$(INVENTORY) from hosts.example.yml - edit it for your hosts"; \
+	fi
 	@echo "✅ Setup complete!"
 
 check: ## Check connectivity to all hosts

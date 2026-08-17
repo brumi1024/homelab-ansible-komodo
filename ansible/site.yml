@@ -1,7 +1,7 @@
 ---
 # Komodo Infrastructure Master Playbook
 # This playbook orchestrates the complete deployment of Komodo infrastructure
-# Run with: ansible-playbook -i inventory/all.yml site.yml
+# Run with: ansible-playbook -i inventory/hosts.yml site.yml
 
 - name: Install Docker on all nodes
   import_playbook: playbooks/01_docker.yml

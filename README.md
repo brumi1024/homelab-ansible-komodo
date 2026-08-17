@@ -116,7 +116,7 @@ The infrastructure uses a hub-and-spoke architecture where Komodo Core acts as t
 | `make clean` | Clean up temporary files and caches |
 
 The Core migration is a one-off cutover rather than routine maintenance, so it has no Make target.
-See [Service Reliability And Recovery](docs/service-recovery.md) for how to run it.
+See `ansible/playbooks/migrate_core.yml` and `docs/architecture.md` for how it works.
 
 ### Advanced Options
 
@@ -128,7 +128,7 @@ See [Service Reliability And Recovery](docs/service-recovery.md) for how to run 
 
 ### Adding a New Server
 
-1. **Update inventory** in `ansible/inventory/all.yml`:
+1. **Update inventory** in `ansible/inventory/hosts.yml`:
    ```yaml
    periphery:
      hosts:
@@ -189,43 +189,34 @@ curl -s http://your-komodo-host:9120
 
 ## Configuration
 
-### Single Source of Truth
+### Where configuration lives
 
-All configuration is centralized in `ansible/inventory/all.yml`:
+Configuration is split so the public repository holds only reusable defaults and your own hosts stay local:
 
-- Host definitions and network settings
-- Komodo Core and Periphery configuration
-- Authentication credentials (via 1Password lookups)
-- Git repository settings for komodo-op and app stacks
-- Resource sync repositories (required for GitOps)
+| File | Committed | Purpose |
+|------|-----------|---------|
+| `ansible/inventory/group_vars/all.yml` | yes | Defaults for every host: ports, paths, security baseline, 1Password vault name, GitOps repositories |
+| `ansible/inventory/group_vars/periphery.yml` | yes | Periphery connection mode |
+| `ansible/inventory/hosts.example.yml` | yes | Starting point for your inventory |
+| `ansible/inventory/hosts.yml` | no (gitignored) | Your hosts, sites, and per-host overrides |
 
-### Key Configuration Sections
+`make setup` creates `hosts.yml` from the example when it is missing.
+Override group defaults per host in `hosts.yml` rather than editing `group_vars/`, so pulling upstream changes never conflicts with your topology.
+
+### Values you will change
 
 ```yaml
-all:
-  vars:
-    # Network & Connection
-    ansible_user: root
-    homelab_tailnet: "{{ 1password_lookup }}"
-    
-    # Komodo Core Settings
-    komodo_port: 9120
-    komodo_core_bind_address: "127.0.0.1"
-    
-    # Komodo Periphery Settings
-    komodo_periphery_port: 8120
-    
-    # Resource Syncs Configuration (GitOps) - REQUIRED
-    komodo_resource_syncs_repo: "brumi1024/komodo-resource-syncs"
-    komodo_resource_syncs_branch: "main"
-    komodo_resource_syncs_git_account: "brumi1024"
-
-    # Secret Management
-    enable_komodo_op: true  # Enable 1Password integration
-
-    # Individual sync repositories (defined in komodo-resource-syncs repo)
-    # app_stacks_repo: "brumi1024/komodo-app-stacks"  # Reference only
+# ansible/inventory/group_vars/all.yml
+homelab_op_vault: "Homelab Ansible"          # your 1Password vault
+komodo_resource_syncs_repo: "you/komodo-resource-syncs"
+komodo_resource_syncs_git_account: "you"
+enable_komodo_op: true                        # 1Password Connect integration
+komodo_port: 9120
+komodo_periphery_port: 8120
 ```
+
+Secrets are never stored in this repository; every credential is a `community.general.onepassword` lookup against `homelab_op_vault`.
+See `docs/1PASSWORD_SETUP.md` for the items and fields expected there.
 
 ## Secret Management
 
@@ -307,7 +298,7 @@ op item edit "Komodo" --vault "Homelab Ansible" komodo_api_key=""
 **Permission issues**:
 ```bash
 # Ensure SSH user has sudo privileges
-ansible all -i inventory/all.yml -m shell -a "sudo -l"
+ansible all -i inventory/hosts.yml -m shell -a "sudo -l"
 ```
 
 ### Log Locations
@@ -330,18 +321,45 @@ make lint  # Run ansible-lint and yamllint
 make check-deploy  # Dry run to see what would change
 ```
 
+### Secret Scanning
+
+CI runs [gitleaks](https://github.com/gitleaks/gitleaks) on every push and pull request.
+Run it locally before committing when in doubt: `gitleaks git` scans history, `gitleaks dir .` scans the working tree.
+Known false positives are allowlisted in `.gitleaks.toml`.
+
+## Using This Repository for Your Own Homelab
+
+The repository is built to be forked.
+Everything committed is reusable shape; everything specific to one homelab is either a 1Password lookup or a gitignored local file.
+
+1. Fork and clone, then `make setup`.
+   This installs collections and creates `ansible/inventory/hosts.yml` from `hosts.example.yml`.
+2. Edit `hosts.yml` with your hosts and sites.
+   Use names that resolve on your management network, not literal addresses.
+3. Set `homelab_op_vault` and the `komodo_resource_syncs_*` values in `ansible/inventory/group_vars/all.yml`, or override them in `hosts.yml` under `all: vars:` if you prefer to keep `group_vars/` untouched.
+4. Create the 1Password items listed in `docs/1PASSWORD_SETUP.md`.
+5. `make check`, then `make deploy`.
+
+`docs/architecture.md` describes how the pieces fit without naming any particular deployment.
+Keep your own topology notes, addresses, and audit evidence outside the repository or in the gitignored `private/` directory.
+
 ## Repository Structure
 
 ```
 ├── Makefile                    # Main deployment commands
+├── CLAUDE.md                   # Working agreement for coding agents
 ├── ansible/                    # Ansible configuration
-│   ├── inventory/all.yml      # Single source of truth configuration
-│   ├── playbooks/             # Deployment playbooks (01-07)
+│   ├── inventory/
+│   │   ├── group_vars/        # Committed defaults (all.yml, periphery.yml)
+│   │   ├── hosts.example.yml  # Template for your inventory
+│   │   └── hosts.yml          # Your hosts (gitignored)
+│   ├── playbooks/             # Deployment playbooks (01-07) and baselines
 │   ├── roles/                 # Custom Ansible roles
 │   │   ├── komodo/           # Komodo Core deployment
 │   │   └── komodo_auth/      # Authentication management
 │   ├── tasks/                # Shared task files
 │   └── site.yml              # Master orchestration playbook
 ├── scripts/                   # Setup and utility scripts
-└── docs/                      # Additional documentation
+├── docs/                      # Architecture, 1Password setup, runbooks
+└── private/                   # Operator notes, gitignored
 ```

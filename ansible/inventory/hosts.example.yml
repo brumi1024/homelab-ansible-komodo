@@ -1,0 +1,76 @@
+---
+# Example operator inventory. Copy to hosts.yml (gitignored) and edit.
+#
+#   cp ansible/inventory/hosts.example.yml ansible/inventory/hosts.yml
+#
+# Group-level defaults live in group_vars/ and rarely need changes.
+# Only host membership and per-host overrides belong in this file.
+#
+# ansible_host should be a name that resolves on your management network
+# (Tailscale MagicDNS short names work well). Avoid literal addresses so the
+# file stays free of anything you would not want in a public fork.
+
+all:
+  children:
+    # Control machine (not managed by infrastructure playbooks)
+    control:
+      hosts:
+        localhost:
+          ansible_connection: local
+
+    komodo:
+      children:
+        # Exactly one Core host.
+        core:
+          hosts:
+            core-host:
+              ansible_host: "core-host"
+              node_site: main
+              komodo_role: core
+
+        # Optional. Only needed while running migrate_core.yml from an old
+        # Core host to a new one. Delete this group otherwise.
+        # legacy_core:
+        #   hosts:
+        #     old-core-host:
+        #       ansible_host: "old-core-host"
+        #       node_site: main
+        #       komodo_role: legacy-core
+
+        # Every host that should run Komodo Periphery, the Core host included
+        # if it also runs stacks.
+        periphery:
+          hosts:
+            core-host:
+              ansible_host: "core-host"
+              node_site: main
+              # Public edge example: host firewall on, only web ports open.
+              homelab_security_input_firewall_enabled: true
+              homelab_security_public_tcp_ports:
+                - 80
+                - 443
+              homelab_security_public_udp_ports:
+                - 443
+                - 41641   # Tailscale
+              homelab_swap_size_mb: 2048
+
+            docker-1:
+              ansible_host: "docker-1"
+              node_site: main
+              homelab_security_forbidden_public_tcp_ports:
+                - 2019   # Caddy admin
+              homelab_docker_proxy_firewall_enabled: true
+
+            docker-2:
+              ansible_host: "docker-2"
+              node_site: remote
+              # Example: a Raspberry Pi running dropbear instead of OpenSSH.
+              # homelab_security_ssh_hardening_enabled: false
+              homelab_docker_proxy_firewall_enabled: true
+
+    # Optional. Proxmox hosts touched only by security_check / security_baseline.
+    proxmox:
+      hosts:
+        pve-1:
+          ansible_host: "pve-1"
+          node_site: main

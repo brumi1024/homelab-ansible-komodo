@@ -8,9 +8,9 @@
 #
 # SOLUTION: Before fresh deployments, ensure the "Komodo" item in 1Password
 # either doesn't exist or has the komodo_api_key field removed:
-#   op item delete "Komodo" --vault "Homelab Ansible"
+#   op item delete "Komodo" --vault "<your vault>"
 # OR
-#   op item edit "Komodo" --vault "Homelab Ansible" komodo_api_key=""
+#   op item edit "Komodo" --vault "<your vault>" komodo_api_key=""
 
 - name: Check if API keys already exist in 1Password
   ansible.builtin.shell: op item get "Komodo" --vault "Homelab" --fields komodo_api_key 2>/dev/null || echo ""

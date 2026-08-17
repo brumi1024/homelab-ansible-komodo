@@ -1,0 +1,8 @@
+# Gitleaks configuration. Extends the default ruleset; only allowlists live here.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known false positives"
+# docs/new-server-setup.md (removed): an `op` field label, not a value.
+commits = ["92c884a8e23d3a14bdd17693d85328d5c6be4d1a"]
