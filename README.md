@@ -329,7 +329,6 @@ Known false positives are allowlisted in `.gitleaks.toml`.
 
 ## Using This Repository for Your Own Homelab
 
-The repository is built to be forked.
 Everything committed is reusable shape; everything specific to one homelab is either a 1Password lookup or a gitignored local file.
 
 1. Fork and clone, then `make setup`.
