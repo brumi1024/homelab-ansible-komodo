@@ -24,6 +24,12 @@ op-credentials.json
 # service exposure. These stay on the operator machine.
 private/
 
+# Claude Code local settings carry env vars and can carry credentials.
+.claude/settings.local.json
+
+# Operator inventory: real hosts and sites. Start from hosts.example.yml.
+ansible/inventory/hosts.yml
+
 # OS generated files
 .DS_Store
 Thumbs.db

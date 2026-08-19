@@ -1,0 +1,98 @@
+---
+# Defaults for every managed host. Operator-specific values (hosts, sites,
+# per-host overrides) live in hosts.yml, which is gitignored; copy
+# hosts.example.yml to start.
+
+# 1Password vault that holds every secret this repo reads. Change this one
+# value to point the whole deployment at your own vault.
+homelab_op_vault: "Homelab Ansible"
+
+ansible_user: root
+ansible_ssh_private_key_file: ~/.ssh/id_rsa
+
+# Komodo Core Settings
+komodo_install_dir: "/opt/komodo"
+komodo_compose_project_name: "komodo-core"
+komodo_port: 9120
+komodo_mongo_cache_size_gb: 0.5
+komodo_core_bind_address: "127.0.0.1"
+
+# Komodo Periphery Settings (bpbradley.komodo v2.x, outbound connection mode)
+komodo_periphery_port: 8120
+# Track whatever version Core reports on its /version endpoint. Keeps Core/Periphery coupled
+# and makes `make periphery-upgrade` a no-argument way to re-align after a Core bump.
+komodo_periphery_version: "core"
+komodo_user: "komodo"
+komodo_group: "komodo"
+komodo_root_directory: "/etc/komodo"
+
+# Computed URLs
+komodo_public_url: >-
+  {{
+    lookup(
+      'community.general.onepassword',
+      'Komodo',
+      field='komodo_host',
+      vault=homelab_op_vault
+    )
+    | regex_replace('/$', '')
+  }}
+komodo_core_http_address: "{{ komodo_public_url }}"
+komodo_core_local_health_url: "http://127.0.0.1:{{ komodo_port }}"
+
+# Authentication Settings
+komodo_auth_base_url: "{{ komodo_core_http_address }}"
+komodo_auth_admin_username: "{{ lookup('community.general.onepassword', 'Komodo', field='username', vault=homelab_op_vault) }}"
+komodo_auth_admin_password: "{{ lookup('community.general.onepassword', 'Komodo', field='password', vault=homelab_op_vault) }}"
+komodo_auth_service_user: "komodo-automation"
+komodo_auth_service_user_description: "Service user for automated deployments and API access"
+komodo_auth_api_key_name: "deployment-api-key"
+
+# API Credentials (1Password lookups)
+komodo_core_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault=homelab_op_vault) }}"
+komodo_core_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault=homelab_op_vault) }}"
+
+# komodo-op Configuration (Secret Management)
+enable_komodo_op: true  # Set to true to enable komodo-op deployment
+# NOTE: komodo-op repository is now defined in komodo-resource-syncs, not here
+
+# Resource Syncs Configuration (GitOps)
+komodo_resource_syncs_repo: "brumi1024/komodo-resource-syncs"
+komodo_resource_syncs_branch: "main"
+komodo_resource_syncs_git_account: "brumi1024"
+homelab_tailnet: "{{ lookup('community.general.onepassword', 'Network', field='tailnet', vault=homelab_op_vault) }}"
+
+# Pragmatic security baseline defaults.
+homelab_security_ssh_hardening_enabled: true
+homelab_security_unattended_upgrades_enabled: true
+homelab_security_forbidden_public_tcp_ports: []
+homelab_security_input_firewall_enabled: false
+homelab_security_public_tcp_ports: []
+homelab_security_public_udp_ports: []
+homelab_security_allow_tailscale: true
+homelab_security_tailscale_interface: tailscale0
+homelab_docker_dns_enabled: true
+homelab_docker_dns_servers:
+  - "100.100.100.100"
+  - "1.1.1.1"
+homelab_docker_dns_search:
+  - "{{ homelab_tailnet }}"
+homelab_docker_proxy_firewall_enabled: false
+homelab_docker_proxy_container_port: 2375
+# homelab_docker_proxy_source_ip is discovered at run time from the Core
+# host, because iptables source matching needs a literal address. See
+# playbooks/tasks/discover_core_tailnet_ip.yml.
+homelab_swap_size_mb: 0
+
+# geerlingguy.security owns the generic Linux hardening. Keep these
+# explicit because the root SSH policy is intentionally less strict than
+# the role default: root key auth stays available for Ansible recovery.
+security_ssh_password_authentication: "no"
+security_ssh_challenge_response_auth: "no"
+security_ssh_x11_forwarding: "no"
+security_ssh_permit_empty_password: "no"
+security_ssh_gss_api_authentication: "no"
+security_ssh_permit_root_login: "prohibit-password"
+security_autoupdate_enabled: "{{ homelab_security_unattended_upgrades_enabled }}"
+security_autoupdate_reboot: "false"
+security_fail2ban_enabled: true

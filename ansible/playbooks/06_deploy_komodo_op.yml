@@ -8,8 +8,8 @@
   vars:
     komodo_port: "{{ hostvars[groups['core'][0]]['komodo_port'] }}"
     komodo_base_url: "http://{{ hostvars[groups['core'][0]]['ansible_host'] }}:{{ komodo_port }}"
-    komodo_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault='Homelab Ansible') }}"
-    komodo_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault='Homelab Ansible') }}"
+    komodo_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_key', vault=homelab_op_vault) }}"
+    komodo_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='komodo_api_secret', vault=homelab_op_vault) }}"
 
   tasks:
     - name: Create komodo resource syncs meta-sync

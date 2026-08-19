@@ -21,7 +21,7 @@
           - ""
           - "💡 If you encounter issues, use force recreation:"
           - "   ansible-playbook playbooks/03_komodo_auth.yml -e komodo_auth_force_recreate=true"
-          - "   OR clean up old API keys: op item delete 'Komodo' --vault 'Homelab Ansible'"
+          - "   OR clean up old API keys: op item delete 'Komodo' --vault '{{ homelab_op_vault }}'"
           - ""
 
   roles:
