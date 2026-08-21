@@ -27,8 +27,7 @@ all:
               ansible_host: "core-host"
               node_site: main
               komodo_role: core
-              # Publish Core on the tailnet as well as loopback, so the UI
-              # and API stay reachable when the public edge is down.
+              # Reachable when the public edge is down.
               komodo_core_bind_addresses:
                 - "127.0.0.1"
                 - "tailnet"

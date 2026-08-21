@@ -1,11 +1,6 @@
 ---
-# Periphery dials Core over the tailnet. The public endpoint is served by the
-# caddy-vps stack, so using it made Komodo's control channel depend on a stack
-# Komodo itself deploys: losing that stack disconnected every agent and left
-# no way to redeploy it. The tailnet path has no such dependency, and its
-# WireGuard transport carries the unencrypted ws:// scheme.
 # The Core host dials loopback: its own short name resolves to 127.0.1.1
-# through /etc/hosts, which shadows MagicDNS and has no listener.
+# through /etc/hosts, shadowing MagicDNS.
 komodo_core_address: >-
   ws://{{
     '127.0.0.1'
