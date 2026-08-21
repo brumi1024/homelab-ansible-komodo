@@ -1,7 +1,17 @@
 ---
-# Periphery dials the stable public Core endpoint. Core itself stays
-# boot-safe on localhost and the private VPS Docker network.
-komodo_core_address: "{{ komodo_public_url | regex_replace('^http', 'ws') }}"
+# Periphery dials Core over the tailnet. The public endpoint is served by the
+# caddy-vps stack, so using it made Komodo's control channel depend on a stack
+# Komodo itself deploys: losing that stack disconnected every agent and left
+# no way to redeploy it. The tailnet path has no such dependency, and its
+# WireGuard transport carries the unencrypted ws:// scheme.
+# The Core host dials loopback: its own short name resolves to 127.0.1.1
+# through /etc/hosts, which shadows MagicDNS and has no listener.
+komodo_core_address: >-
+  ws://{{
+    '127.0.0.1'
+    if inventory_hostname in groups['core']
+    else hostvars[groups['core'][0]].ansible_host
+  }}:{{ komodo_port }}
 # Explicit; the role auto-coerces this when komodo_core_address is set, but
 # stating it makes the topology obvious.
 komodo_server_enabled: false
