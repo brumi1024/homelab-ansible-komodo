@@ -44,7 +44,9 @@ services:
       mongo:
         condition: service_healthy
     ports:
-      - {{ komodo_core_bind_address }}:{{ komodo_port }}:9120
+{% for address in komodo_core_resolved_bind_addresses %}
+      - {{ address }}:{{ komodo_port }}:9120
+{% endfor %}
     env_file: ./compose.env
     environment:
       KOMODO_DATABASE_ADDRESS: mongo:27017

@@ -1,7 +1,12 @@
 ---
-# Periphery dials the stable public Core endpoint. Core itself stays
-# boot-safe on localhost and the private VPS Docker network.
-komodo_core_address: "{{ komodo_public_url | regex_replace('^http', 'ws') }}"
+# The Core host dials loopback: its own short name resolves to 127.0.1.1
+# through /etc/hosts, shadowing MagicDNS.
+komodo_core_address: >-
+  ws://{{
+    '127.0.0.1'
+    if inventory_hostname in groups['core']
+    else hostvars[groups['core'][0]].ansible_host
+  }}:{{ komodo_port }}
 # Explicit; the role auto-coerces this when komodo_core_address is set, but
 # stating it makes the topology obvious.
 komodo_server_enabled: false
