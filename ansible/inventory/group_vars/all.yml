@@ -15,7 +15,12 @@ komodo_install_dir: "/opt/komodo"
 komodo_compose_project_name: "komodo-core"
 komodo_port: 9120
 komodo_mongo_cache_size_gb: 0.5
-komodo_core_bind_address: "127.0.0.1"
+# Addresses Core publishes its port on. The literal "tailnet" resolves at run
+# time to this host's Tailscale IPv4, keeping the UI and API reachable when the
+# public edge is down, without a tailnet address entering the repository.
+# Loopback stays listed because the Core health check probes 127.0.0.1.
+komodo_core_bind_addresses:
+  - "127.0.0.1"
 
 # Komodo Periphery Settings (bpbradley.komodo v2.x, outbound connection mode)
 komodo_periphery_port: 8120

@@ -14,6 +14,32 @@
     - vps-ingress
     - monitoring-control
 
+- name: Resolve this host's tailnet address
+  ansible.builtin.command: tailscale ip -4
+  register: komodo_core_tailnet_ip
+  changed_when: false
+  failed_when: false
+  when: '"tailnet" in komodo_core_bind_addresses'
+
+- name: Fail when the tailnet address cannot be resolved
+  ansible.builtin.fail:
+    msg: >-
+      komodo_core_bind_addresses requests "tailnet", but this host reports no
+      Tailscale IPv4. Bring tailscaled up, or list a literal address instead.
+  when:
+    - '"tailnet" in komodo_core_bind_addresses'
+    - komodo_core_tailnet_ip.rc != 0 or komodo_core_tailnet_ip.stdout_lines | length == 0
+
+- name: Resolve the addresses Core publishes its port on
+  ansible.builtin.set_fact:
+    komodo_core_resolved_bind_addresses: >-
+      {{
+        komodo_core_bind_addresses
+        | map('regex_replace', '^tailnet$',
+              komodo_core_tailnet_ip.stdout_lines | default([]) | first | default(''))
+        | list
+      }}
+
 - name: Generate Komodo Docker Compose file from template
   ansible.builtin.template:
     src: komodo-compose.yml.j2
